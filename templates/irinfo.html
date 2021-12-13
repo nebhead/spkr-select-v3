@@ -1,0 +1,320 @@
+{% extends 'base.html' %}
+
+{% block title %} IR Info {% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="card">
+        <div class="card-header bg-primary text-white">
+            <H5><b><i class="fas fa-rss"></i> Information on Enabling IR for Raspberry Pi Speaker Selector</b></H5>
+        </div>
+        <div class="card-body">
+            <H5 class="card-title"><b><i class="fas fa-chevron-circle-right"></i> Introduction</b></H5>
+            <p>Utilizing an IR remote control for the speaker selector on the Raspberry Pi requires some additional setup and configuration that may be custom depending on your unique setup.</p>
+            <p>The main challenge is finding a remote control that you want to utilize to control the speaker selector and then configuring the system to accept those commands. I personally used an existing remote profile that I could easily configure/customize in my Logitech Harmony remote.</p>
+            
+            <H5 class="card-title"><b><i class="fas fa-chevron-circle-right"></i> High Level Concept</b></H5>
+            <p>This version of speaker selector relies upon the irkeytable software and python evdev module (which are installed by default during the base installation).  At a high level, the irkeytable software is kernel level code that will intercept IR input, and translate those to keyboard inputs based on a user defined table.  We then use the evdev (event device) module to get those keyboard commands from the device defined by irkeytable.  It's a pretty straightforward approach, that ends up being far simpler than the previous LIRC setup.  However, because everyone has different remote controls to use, it's going to require some configuration at the command line.</p>
+            
+			<H5 class="card-title"><b><i class="fas fa-chevron-circle-right"></i> Guided Installation</b></H5>
+			<p>A script has been provided to help guide the user through basic IR remote setup.  You can launch this script by logging into your raspberry pi via ssh and running the following:</p>
+            <code class="bg-light">            
+                $ bash /home/pi/speaker-select-v3/auto-install/setup_ir.sh
+            </code><br><br>
+
+            <H5 class="card-title"><b><i class="fas fa-chevron-circle-right"></i> Manual Installation</b></H5>
+            <p>If you need to tweak some of your settings in more detail or you run into issues with the script above, then you can try to follow the below manual install. Let's get started on the command prompt (ssh into your Pi).</p>
+            <p><b>1. First we are going to edit the <code>/boot/config.txt</code> file to add the IR gpio configuration.</b></p>
+            <code class="bg-light">            
+                sudo nano /boot/config.txt
+            </code><br><br>
+            <p>At the end of the file, add the following text (the below GPIO pin 27 is the default, you can change the pin here if needed): </p>
+            <code class="bg-light">
+                dtoverlay=gpio-ir,gpio_pin=27
+            </code>
+            <p>Then press <kbd>ctrl-o</kbd> to write the file, and <kbd>ctrl-x</kbd> to exit.</p>
+            <p><b>2. Back at the command prompt, we need to install ir-keytable (if not already installed).</b></p>
+            <code class="bg-light">
+                sudo apt install ir-keytable
+            </code><br><br>
+            <p><b>3. Next install python evdev (if not already installed): </b></p>
+            <code class="bg-light">
+                sudo pip3 install evdev
+            </code><br><br>
+            <p><b>4. Now that we have the required software installed, and the GPIO configured for the IR input, we can reboot to let the OS Kernel discover the IR device:</b></p>
+            <code class="bg-light">
+                sudo reboot
+            </code><br><br>
+
+            <p><b>5. After we reboot, ssh back into the raspberry pi and let's start testing.  </b></p>
+            <code class="bg-light">
+                sudo ir-keytable
+            </code><br><br>
+            <p>You should see something like this: </p>
+                <pre class="bg-secondary text-white">
+    pi@SpeakerZero:~ $ sudo ir-keytable
+    Found /sys/class/rc/rc0/ (/dev/input/event0) with:
+            Name: gpio_ir_recv
+            Driver: gpio_ir_recv, table: rc-rc6-mce
+            LIRC device: /dev/lirc0
+            Attached BPF protocols: 
+            Supported kernel protocols: lirc rc-5 rc-5-sz jvc sony nec sanyo mce_kbd rc-6 sharp xmp imon 
+            Enabled kernel protocols: lirc nec 
+            bus: 25, vendor/product: 0001:0001, version: 0x0100
+            Repeat delay = 500 ms, repeat period = 125 ms
+                </pre>
+            <p>Take note, the name should be <code>gpio_ir_recv</code> and the should be at <code>rc0</code>.</p>
+
+            <p>Next we will enable all of the protocols and start testing with a remote.</p>
+            <code class="bg-light">
+            sudo ir-keytable -p rc-5,rc-5-sz,jvc,sony,nec,sanyo,mce_kbd,rc-6,sharp,xmp
+            </code><br><br>
+            <p>Then start testing with real remote commands by entering test mode:</p>
+            <code class="bg-light">
+                sudo ir-keytable -t
+            </code><br><br>
+            <p>At this point you can start mashing your remote buttons to find out what protocol and scan codes you have. Take care to document the scan codes you want to use.</p>
+            <pre class="bg-secondary text-white">
+
+    pi@SpeakerZero:~ $ sudo ir-keytable -t
+    Testing events. Please, press CTRL-C to abort.
+    420606.270204: lirc protocol(necx): scancode = 0x807e01
+    420606.270269: event type EV_MSC(0x04): scancode = 0x807e01
+    420606.270269: event type EV_KEY(0x01) key_down: KEY_A(0x001e)
+    420606.270269: event type EV_SYN(0x00).
+    420606.340101: lirc protocol(necx): scancode = 0x807e01 repeat
+    420606.340157: event type EV_MSC(0x04): scancode = 0x807e01
+    420606.340157: event type EV_SYN(0x00).
+    420606.450097: lirc protocol(necx): scancode = 0x807e01 repeat
+    420606.450151: event type EV_MSC(0x04): scancode = 0x807e01
+    420606.450151: event type EV_SYN(0x00).
+    420606.540136: lirc protocol(necx): scancode = 0x807e01 repeat
+    420606.540183: event type EV_MSC(0x04): scancode = 0x807e01
+    420606.540183: event type EV_SYN(0x00).
+    420606.680091: event type EV_KEY(0x01) key_up: KEY_A(0x001e)
+    420606.680091: event type EV_SYN(0x00).
+    420609.570104: lirc protocol(necx): scancode = 0x807e18
+    420609.570175: event type EV_MSC(0x04): scancode = 0x807e18
+    420609.570175: event type EV_KEY(0x01) key_down: KEY_D(0x0020)
+    420609.570175: event type EV_SYN(0x00).
+    420609.620088: lirc protocol(necx): scancode = 0x807e18 repeat
+    420609.620145: event type EV_MSC(0x04): scancode = 0x807e18
+    420609.620145: event type EV_SYN(0x00).
+    420609.730149: lirc protocol(necx): scancode = 0x807e18 repeat
+    420609.730211: event type EV_MSC(0x04): scancode = 0x807e18
+    420609.730211: event type EV_SYN(0x00).
+    420609.840090: lirc protocol(necx): scancode = 0x807e18 repeat
+    420609.840139: event type EV_MSC(0x04): scancode = 0x807e18
+    420609.840139: event type EV_SYN(0x00).
+    420609.980089: event type EV_KEY(0x01) key_up: KEY_D(0x0020)
+    420609.980089: event type EV_SYN(0x00).
+    420611.510115: lirc protocol(necx): scancode = 0x807e57
+    420611.510188: event type EV_MSC(0x04): scancode = 0x807e57
+    420611.510188: event type EV_KEY(0x01) key_down: KEY_0(0x000b)
+    420611.510188: event type EV_SYN(0x00).
+    420611.560090: lirc protocol(necx): scancode = 0x807e57 repeat
+    420611.560149: event type EV_MSC(0x04): scancode = 0x807e57
+    420611.560149: event type EV_SYN(0x00).
+    420611.670085: lirc protocol(necx): scancode = 0x807e57 repeat
+    420611.670137: event type EV_MSC(0x04): scancode = 0x807e57
+    420611.670137: event type EV_SYN(0x00).
+    420611.760175: lirc protocol(necx): scancode = 0x807e57 repeat
+    420611.760223: event type EV_MSC(0x04): scancode = 0x807e57
+    420611.760223: event type EV_SYN(0x00).
+    420611.900085: event type EV_KEY(0x01) key_up: KEY_0(0x000b)
+    420611.900085: event type EV_SYN(0x00).
+    420616.230103: lirc protocol(necx): scancode = 0x807e58
+    420616.230180: event type EV_MSC(0x04): scancode = 0x807e58
+    420616.230180: event type EV_KEY(0x01) key_down: KEY_1(0x0002)
+    420616.230180: event type EV_SYN(0x00).
+    420616.280096: lirc protocol(necx): scancode = 0x807e58 repeat
+    420616.280153: event type EV_MSC(0x04): scancode = 0x807e58
+    420616.280153: event type EV_SYN(0x00).
+    420616.390106: lirc protocol(necx): scancode = 0x807e58 repeat
+    420616.390161: event type EV_MSC(0x04): scancode = 0x807e58
+    420616.390161: event type EV_SYN(0x00).
+    420616.480176: lirc protocol(necx): scancode = 0x807e58 repeat
+    420616.480216: event type EV_MSC(0x04): scancode = 0x807e58
+    420616.480216: event type EV_SYN(0x00).
+    420616.620124: event type EV_KEY(0x01) key_up: KEY_1(0x0002)
+    420616.620124: event type EV_SYN(0x00).
+    420618.030153: lirc protocol(necx): scancode = 0x807e59
+    420618.030215: event type EV_MSC(0x04): scancode = 0x807e59
+    420618.030215: event type EV_KEY(0x01) key_down: KEY_2(0x0003)
+    420618.030215: event type EV_SYN(0x00).
+    420618.080135: lirc protocol(necx): scancode = 0x807e59 repeat
+    420618.080179: event type EV_MSC(0x04): scancode = 0x807e59
+    420618.080179: event type EV_SYN(0x00).
+    420618.200147: lirc protocol(necx): scancode = 0x807e59 repeat
+    420618.200213: event type EV_MSC(0x04): scancode = 0x807e59
+    420618.200213: event type EV_SYN(0x00).
+    420618.310106: lirc protocol(necx): scancode = 0x807e59 repeat
+    420618.310165: event type EV_MSC(0x04): scancode = 0x807e59
+    420618.310165: event type EV_SYN(0x00).
+    420618.450093: event type EV_KEY(0x01) key_up: KEY_2(0x0003)
+    420618.450093: event type EV_SYN(0x00).
+    420619.800217: lirc protocol(necx): scancode = 0x807e59
+    420619.800284: event type EV_MSC(0x04): scancode = 0x807e59
+    420619.800284: event type EV_KEY(0x01) key_down: KEY_2(0x0003)
+    420619.800284: event type EV_SYN(0x00).
+    420619.870107: lirc protocol(necx): scancode = 0x807e59 repeat
+    420619.870166: event type EV_MSC(0x04): scancode = 0x807e59
+    420619.870166: event type EV_SYN(0x00).
+    420619.960115: lirc protocol(necx): scancode = 0x807e59 repeat
+    420619.960178: event type EV_MSC(0x04): scancode = 0x807e59
+    420619.960178: event type EV_SYN(0x00).
+    420620.080082: lirc protocol(necx): scancode = 0x807e59 repeat
+    420620.080143: event type EV_MSC(0x04): scancode = 0x807e59
+    420620.080143: event type EV_SYN(0x00).
+    420620.220129: event type EV_KEY(0x01) key_up: KEY_2(0x0003)
+    420620.220129: event type EV_SYN(0x00).
+    420621.570096: lirc protocol(necx): scancode = 0x807e58
+    420621.570171: event type EV_MSC(0x04): scancode = 0x807e58
+    420621.570171: event type EV_KEY(0x01) key_down: KEY_1(0x0002)
+    420621.570171: event type EV_SYN(0x00).
+    420621.620111: lirc protocol(necx): scancode = 0x807e58 repeat
+    420621.620176: event type EV_MSC(0x04): scancode = 0x807e58
+    420621.620176: event type EV_SYN(0x00).
+    420621.730110: lirc protocol(necx): scancode = 0x807e58 repeat
+    420621.730161: event type EV_MSC(0x04): scancode = 0x807e58
+    420621.730161: event type EV_SYN(0x00).
+    420621.820191: lirc protocol(necx): scancode = 0x807e58 repeat
+    420621.820250: event type EV_MSC(0x04): scancode = 0x807e58
+    420621.820250: event type EV_SYN(0x00).
+    420621.960086: event type EV_KEY(0x01) key_up: KEY_1(0x0002)
+    420621.960086: event type EV_SYN(0x00).
+    420622.580133: lirc protocol(necx): scancode = 0x807e57
+    420622.580211: event type EV_MSC(0x04): scancode = 0x807e57
+    420622.580211: event type EV_KEY(0x01) key_down: KEY_0(0x000b)
+    420622.580211: event type EV_SYN(0x00).
+    420622.650142: lirc protocol(necx): scancode = 0x807e57 repeat
+    420622.650205: event type EV_MSC(0x04): scancode = 0x807e57
+    420622.650205: event type EV_SYN(0x00).
+    420622.740114: lirc protocol(necx): scancode = 0x807e57 repeat
+    420622.740177: event type EV_MSC(0x04): scancode = 0x807e57
+    420622.740177: event type EV_SYN(0x00).
+    420622.850152: lirc protocol(necx): scancode = 0x807e57 repeat
+    420622.850216: event type EV_MSC(0x04): scancode = 0x807e57
+    420622.850216: event type EV_SYN(0x00).
+    420622.990082: event type EV_KEY(0x01) key_up: KEY_0(0x000b)
+    420622.990082: event type EV_SYN(0x00).
+</pre>
+            <p><kbd>ctrl+c</kbd> to exit.</p>
+            <p>In this example, I already have the key mapping loaded, so it's recognizing the keys appropriately. However, you'll want to note the scan codes that you want to use and the protocal (in most cases this is going to be the nec protocol).</p>
+            <p>For the speaker selector, the following keys will be mapped, so select the scan codes you'll be using based on these.</p>
+            <table class="table table-dark table-hover">
+                <thead>
+                  <tr>
+                    <th>Key</th>
+                    <th>Description</th>
+                    <th>Scan Code</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>KEY_A</td>
+                    <td>Button to turn ON all enabled speakers.</td>
+                    <td><i>Fill in your scan code here.</i></td>
+                  </tr>
+                  <tr>
+                    <td>KEY_D</td>
+                    <td>Button to turn ON default enabled speakers.</td>
+                    <td><i>Fill in your scan code here.</i></td>
+                  </tr>
+                  <tr>
+                    <td>KEY_0</td>
+                    <td>Button for toggling speakers (1) on/off.</td>
+                    <td><i>Fill in your scan code here.</i></td>
+                  </tr>
+                  <tr>
+                    <td>KEY_1</td>
+                    <td>Button for toggling speakers (2) on/off.</td>
+                    <td><i>Fill in your scan code here.</i></td>
+                  </tr>
+                  <tr>
+                    <td>KEY_2</td>
+                    <td>Button for toggling speakers (3) on/off.</td>
+                    <td><i>Fill in your scan code here.</i></td>
+                  </tr>
+                  <tr>
+                    <td>KEY_3</td>
+                    <td>Button for toggling speakers (4) on/off.</td>
+                    <td><i>Fill in your scan code here.</i></td>
+                  </tr>
+                </tbody>
+              </table>
+
+            <p><b>6. Once you have all of the scan codes documented, you can edit your ir-keytable configuration file. (<code>/spkr-select-v3/spkrselect.toml</code>)</b></p>
+            <code class="bg-light">
+                nano ~/spkr-select-v3/spkrselect.toml
+            </code><br><br>
+            <p>Then modify the scan codes and the protocol/variant appropriately.</p>
+                <pre class="bg-secondary text-white">
+
+    [[protocols]]
+    name = "spkrselect"
+    protocol = "nec"
+    variant = "necx"
+
+    [protocols.scancodes]
+    0x807e01 = "KEY_A"
+    0x807e18 = "KEY_D"
+    0x807e57 = "KEY_0"
+    0x807e58 = "KEY_1"
+    0x807e59 = "KEY_2"
+                </pre>
+            <p>Then press <kbd>ctrl-o</kbd> to write the file, and <kbd>ctrl-x</kbd> to exit.</p>
+            <p>Note: I haven't implemented speaker group 4 in my implementation, but if you wanted to, you could add 'KEY_3' and associated scan code for your implementaiton.</p>
+
+            <p><b>7. Now we need to clear the configuration, write the new configuration, then ready and test it. To do this, do the following.  Clear the current configuration.</b></p>
+            <code class="bg-light">
+                sudo ir-keytable -c 
+            </code><br><br>
+            <p>Write your new configuration:</p>
+            <code class="bg-light">
+                sudo ir-keytable -w ~/spkr-select-v3/spkrselect.toml
+            </code><br><br>
+            <p>Read the configuration:</p>
+            <code class="bg-light">
+                sudo ir-keytable -r
+            </code><br><br>
+            <p>Test the configuration:</p>
+            <code class="bg-light">
+                sudo ir-keytable -t
+            </code>
+            <p><kbd>ctrl-c</kbd> to exit.</p>
+            <p>Confirm your keys are being recognized and mapped to KEY_A, KEY_D, KEY_0, ... etc.</p>
+            
+            <p><b>8. Now it's time to make the configuration permament and working on reboot.</b></p>
+            <p>First we need to move the <code>spkrselect.toml</code> file to the correct location:</p>
+            <code class="bg-light">
+                sudo mv spkrselect.toml /etc/rc_keymaps/
+            </code><br><br>
+            <p>Now, add a row in <code>/etc/rc_maps.cfg</code>:</p>
+            <code class="bg-light">
+                sudo nano /etc/rc_maps.cfg
+            </code><br><br>
+            <p>Add this line to the <b>beginning</b> of the list of configuration files:</p>
+            <code class="bg-light">
+                *    *                      spkrselect.toml
+            </code>
+            <p>Then press <kbd>ctrl-o</kbd> to write the file, and <kbd>ctrl-x</kbd> to exit.</p>
+            <p>To make sure this is persistant accross reboots, add to the crontab:</p>
+
+            <code class="bg-light">
+            sudo crontab -e 
+            </code>
+            <p>If prompted to select an editor, select <kbd>nano</kbd>.</p>
+
+            <p>At the bootom of the file, add the following line:</p>
+            <code class="bg-light">
+            @reboot ir-keytable -a /etc/rc_maps.cfg -s rc0
+            </code>
+            <p>Then press <kbd>ctrl-o</kbd> to write the file, and <kbd>ctrl-x</kbd> to exit.</p>
+
+            <p>Congratulations, that should be all you need to do from the shell.  In the web UI, you should be able to enable IR and reboot the system to get the IR remote working to control your speaker selector.</p>
+
+        </div>
+    </div>
+</div> <!-- End Container -->
+{% endblock %}

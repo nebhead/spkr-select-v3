@@ -1,4 +1,9 @@
-# ![SpeakerSelect](documents/pages/photos/launcher-icon-1x.png) Speaker Select V3
+---
+title: "Speaker Select Documentation"
+permalink: /
+sort: 1
+---
+# ![SpeakerSelect](photos/launcher-icon-1x.png) Speaker Select V3
 
 ## Raspberry Pi based Speaker Selector
 
@@ -28,17 +33,21 @@ This project utilizes a Raspberry Pi Zero W (or even the new Pi Zero W 2!), plug
 
 Here is a screenshot of the dashboard:
 
-![Dashboard](documents/pages/photos/spkr-select-v3-dash-00.jpg)
+![Dashboard](photos/spkr-select-v3-dash-00.jpg)
 
 ## Hardware 
 
 A 3D printed enclosure is available for download.  Here is the back of the finished product:
 
-![Hardware](documents/pages/photos/hw-00.jpg)
+![Hardware](photos/hw-00.jpg)
 
-## Full Documentation
+## Introduction 
 
-For more information about how you too can build this speaker selector, go to the GitHub pages here: [https://nebhead.github.io/spkr-select-v3](https://nebhead.github.io/spkr-select-v3) 
+This project was inspired by David Liu and his excellent speaker selector [project.](http://iceboundflame.com/projects/multi-room-audio-control-with-rpi). I encourage you to check it out and get a rough idea of how this all works.
+
+As mentioned above, this is an evolution of my [original speaker selector project](https://github.com/nebhead/spkr-select) which utilized a relay module and some other electronics that were wired up by hand. This is the third iteration of the project with custom designed PCBs (one that utilizes on-board relays, and one that can utilize a relay module similar to the original version).  Some might find this a little complicated to build, but for me it was a journey to learn more and more skills, so I encourage you to give it a shot and maybe you'll learn something new along the way. 
+
+This project uses using Gunicorn and nginx to proxy web requests.  There are two processes running concurrently (control.py and app.py).  Control handles all of the RasPi GPIO interfaces, while App handles the web routes.  They communicate through a Redis database to improve speed and reliability.  
 
 ## Credits
 

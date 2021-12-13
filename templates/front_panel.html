@@ -1,0 +1,82 @@
+{% extends 'base.html' %}
+
+{% block title %} Test Front Panel {% endblock %}
+
+{% block notify %}
+    {% if (warning != 'none') %}
+	<div class="container">
+	 	<div class="alert alert-danger">
+		<i class="fas fa-info-circle"></i><b> {{ warning }}</b>
+    	</div>
+	</div>
+	{% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="container">
+
+	<div class="card">
+		<div class="card-body">
+		<div class="row justify-content-md-center">
+			{% for button in button_list %}
+			{% if button['keyname'] != 'spkr_pro' %}
+			<div class="col">
+				<div class="card mx-auto" style="width: 18rem;">
+					<button type="button" class="btn btn-secondary disabled shadow" id="btn_{{ button['keyname'] }}">
+						<h1><b id="icon_{{ button['keyname'] }}"><i class="fas fa-volume-mute"></i></b></h1><br>
+						<b>{{ button['name'] }}</b> <b id="text_{{ button['keyname'] }}"></b>
+					</button>
+				</div><br>
+				<!-- Front Panel Button -->
+				<div class="card mx-auto" style="width: 18rem;">
+					<button type="button" class="btn btn-primary shadow" id="fp_btn_{{ button['keyname'] }}">
+						<h1><b> <i class="far fa-circle"></i> </b></h1>
+					</button>
+				</div><br>
+
+			</div> 
+			{% endif %}
+			{% endfor %}
+		</div> 
+		<br>
+
+		<div class="alert alert-warning text-center shadow" role="alert" style="display:none" id="protection">
+			<i class="fas fa-shield-alt"></i><strong> Speaker Protection Enabled</strong><br>
+			<i class="small">Speaker protection automatically enabled when impedance is below 4&#8486.</i> 
+		</div><br>
+
+		<!-- All-On Settings Button -->
+		<button type="button" class="btn btn-primary btn-lg btn-block shadow" id="all_on" name="all_on" value="true">All-On</button>
+		<br>
+		<!-- Default Settings Button -->
+		<button type="button" class="btn btn-primary btn-lg btn-block shadow" id="defaults" name="defaults" value="true">Default</button>
+		</div>
+	</div>
+</div> <!-- End Container -->
+
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/button_status.js') }}"></script>
+<script>
+{% for button in button_list %}
+{% if button['keyname'] != 'spkr_pro' %}
+document.getElementById('fp_btn_{{ button['keyname']}}').addEventListener("click", function() {
+		req = $.ajax({
+			url : '/button',
+			type : 'POST',
+			data : { 'fp_button' : '{{ button['keyname'] }}' }
+		});
+		
+		req.done(function(data) {
+			if (data.result == 'success') {
+				doUpdate();
+			} else {
+				alert('Error sending button press.');
+			};
+		});
+	});
+{% endif %}
+{% endfor %}
+</script>
+{% endblock %}

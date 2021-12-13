@@ -1,0 +1,478 @@
+{% extends 'base.html' %}
+
+{% block title %} Admin & Settings {% endblock %}
+
+{% block notify %}
+	<div class="container">
+	<!-- Settings Success -->
+      {% if (notify['type'] == 'success') %}
+        <div class="alert alert-success">
+			<i class="fas fa-info-circle"></i><b> {{ notify['message'] }}</b>
+        </div>
+	  {% elif (notify['type'] == 'error') %}
+		<div class="alert alert-danger">
+			<i class="fas fa-info-circle"></i><b> {{ notify['message'] }}</b>
+		</div>
+	  {% endif %}
+    </div>  
+{% endblock %}
+
+{% block content %}
+
+<div class="container">
+
+	<!-- Speaker Config Card -->
+	<form name="input" action="/admin/settings" method="POST">
+		<div class="card">
+			<div class="card-header">
+				Speaker Configuration
+			</div>
+			<div class="card-body">
+				<div class="card">
+					<div class="card-header">
+						<i class="fas fa-text-height"></i><i> Trigger Level for Relays</i>
+					</div>
+					<div class="card-body">
+						<i>All relays operate either active high / trigger level high or active low / trigger level low.  Set this depending on what kind of relay board you have installed.</i>
+						<br><br>
+						<div class="form-check">
+							<input class="form-check-input" type="radio" name="triggerlevel" id="triggerlevelhigh" value="high" {% if settings['options']['triggerlevel'] == 'high' %}checked{% endif %}>
+							<label class="form-check-label" for="triggerlevelhigh">
+								Active High
+							</label>
+						</div>
+						<div class="form-check">
+							<input class="form-check-input" type="radio" name="triggerlevel" id="triggerlevellow" value="low" {% if settings['options']['triggerlevel'] == 'low' %}checked{% endif %}>
+							<label class="form-check-label" for="triggerlevellow">
+								Active Low
+							</label>
+						</div>
+					</div>
+				</div><br>
+				<!-- Speaker Settings Cards -->
+				{% for key, value in settings['spkr_config'].items() %}
+				{% if key != 'spkr_pro' %}
+				<div class="card">
+					<div class="card-header">
+						{% if key == 'spkr_00' %}
+						<i class="fas fa-sliders-h"></i><i> Speaker Pair 0</i>
+						{% elif key == 'spkr_01' %}
+						<i class="fas fa-sliders-h"></i><i> Speaker Pair 1</i>
+						{% elif key == 'spkr_02' %}
+						<i class="fas fa-sliders-h"></i><i> Speaker Pair 2</i>
+						{% elif key == 'spkr_03' %}
+						<i class="fas fa-sliders-h"></i><i> Speaker Pair 3</i>
+						{% endif %}
+						<span class="float-right">
+						{% if settings['spkr_config'][key]['enabled'] == True %}
+						<div class="custom-control custom-switch">
+							<input type="checkbox" class="custom-control-input" id="{{key}}switch1" name="{{key}}_enabled" checked>
+							<label class="custom-control-label" for="{{key}}switch1">Enable</label>
+						</div>
+						{% else %}
+						<div class="custom-control custom-switch">
+							<input type="checkbox" class="custom-control-input" id="{{key}}switch1" name="{{key}}_enabled">
+							<label class="custom-control-label" for="{{key}}switch1">Enable</label>
+						</div>
+						{% endif %}
+						</span>
+					</div>
+					<div class="card-body">
+						<div class="input-group mb-3">
+							<div class="input-group-prepend">
+							  <span class="input-group-text">Name / Room:</span>
+							</div>
+							<input type="text" class="form-control" name="{{ key }}_name" value="{{ settings['spkr_config'][key]['name'] }}">
+						</div>
+						
+						<div class="input-group">
+							<div class="input-group-prepend">
+								<span class="input-group-text">Impedance:</span>
+							</div>
+							<select class="form-control" id="{{ key }}_impedance" name="{{ key }}_impedance">
+							  <option value="1" {% if settings['spkr_config'][key]['impedance'] == 1 %}selected="selected"{% endif %}>1&#8486</option>
+							  <option value="2" {% if settings['spkr_config'][key]['impedance'] == 2 %}selected="selected"{% endif %}>2&#8486</option>
+							  <option value="4" {% if settings['spkr_config'][key]['impedance'] == 4 %}selected="selected"{% endif %}>4&#8486</option>
+							  <option value="6" {% if settings['spkr_config'][key]['impedance'] == 6 %}selected="selected"{% endif %}>6&#8486</option>
+							  <option value="8" {% if settings['spkr_config'][key]['impedance'] == 8 %}selected="selected"{% endif %}>8&#8486</option>
+							  <option value="12" {% if settings['spkr_config'][key]['impedance'] == 12 %}selected="selected"{% endif %}>12&#8486</option>
+							  <option value="16" {% if settings['spkr_config'][key]['impedance'] == 16 %}selected="selected"{% endif %}>16&#8486</option>
+							</select>
+						</div><br>
+
+						<div class="input-group">
+							<div class="input-group-prepend">
+								<span class="input-group-text">Default State:</span>
+							</div>
+							<select class="form-control" id="{{ key }}_default" name="{{ key }}_default">
+								<option value="nc" {% if settings['spkr_config'][key]['default'] == 'nc' %}selected="selected"{% endif %}>ON (Normally Closed)</option>
+								<option value="no" {% if settings['spkr_config'][key]['default'] == 'no' %}selected="selected"{% endif %}>OFF (Normally Open)</option>
+							</select>
+						</div>
+						<span class="badge badge-info">Note:</span><i size="small">The default setting will affect the behavior of the output.  If a speaker pair is set to default ON, it is expected that the speakers are connected to the relay as normally closed. </i>
+
+					</div>
+				</div>
+				<br>
+				{% endif %}
+				{% endfor %}
+			</div>
+			<div class="card-footer">
+				<button type="submit" name="config_update" value="true" class="btn btn-success btn-sm">Save Changes</button>
+			</div>
+		</div>
+	</form>
+	<br>
+
+	<!-- IR Settings Card -->
+	<form name="input" action="/admin/settings" method="POST">
+		<div class="card">
+			<div class="card-header">
+				Infrared Remote Control Support
+			</div>
+			<div class="card-body">
+				<!-- Enable / Disable IR Remote -->
+				{% if settings['options']['ir_input'] == True %}
+				<button type="submit" name="ir_input" value="false" class="btn btn-success btn-block">IR Remote Enabled</button>
+				{% else %}
+				<button type="submit" name="ir_input" value="true" class="btn btn-secondary btn-block">IR Remote Disabled</button>
+				{% endif %}
+				<span class="badge badge-info">Note:</span><i size="small">Additional configuration may be neccessary to enable IR remote support, especially if not enabled during installation.  Please see the following details <a href="/irinfo">here</a> for more information on setup. </i>
+			</div>
+		</div>
+	</form>
+	<br>
+
+	<!-- Themes Settings Card -->
+		<div class="card">
+			<div class="card-header">
+				Theme Settings
+			</div>
+			<div class="card-body">
+				<form name="input" action="/admin/settings" method="POST" id="themesForm"> 
+				<div class="accordion" id="accordionThemes">
+					<!-- Accordian Card for Static Theme -->
+					<div class="card">
+					  <div class="card-header" id="staticTheme">
+						  <div class="form-check">
+							<input class="form-check-input" type="radio" name="themeRadios" id="static_theme" data-toggle="collapse" data-target="#collapse_static_theme_settings" aria-controls="collapse_static_theme_settings" 
+							  {% if not settings['ui_config']['auto_theme']['enabled'] %}checked{% endif %}>
+							<label class="form-check-label" for="static_theme">
+							  Enable Static Theme
+							</label>
+						  </div>
+					  </div>
+					  
+					  <div id="collapse_static_theme_settings" class="collapse {% if not settings['ui_config']['auto_theme']['enabled'] %}show{% endif %}" aria-labelledby="staticTheme" data-parent="#accordionThemes">
+						<div class="card-body">
+							<div class="input-group mb-3">
+								<select class="custom-select" id="staticThemeSelect" name="staticThemeSelect">
+								  <option value="default">Light Mode (Default)</option>
+								  <option value="dark">Dark Mode</option>
+								</select>
+  							</div>
+						</div>
+						<div class="card-footer"> 
+							<button type="submit" name="static_theme_update" value="true" class="btn btn-success btn-sm">Save Changes</button>
+						</div>
+					  </div>
+					</div>
+					
+					<!-- Accordian Card for Auto Theme -->
+					
+					<div class="card">
+					  <div class="card-header" id="autoTheme">
+						<div class="form-check">
+							<input class="form-check-input" type="radio" name="themeRadios" id="auto_theme" data-toggle="collapse" data-target="#collapse_auto_theme_settings" aria-controls="collapse_auto_theme_settings"
+							  {% if (settings['ui_config']['auto_theme']['enabled']) %}checked{% endif %}>
+							<label class="form-check-label" for="auto_theme">
+							  Enable Auto Theme
+							</label>
+						  </div>
+					  </div>
+					  <div id="collapse_auto_theme_settings" class="collapse {% if (settings['ui_config']['auto_theme']['enabled']) %}show{% endif %}" aria-labelledby="autoTheme" data-parent="#accordionThemes">
+						<div class="card-body">
+							<i>
+								This mode will automatically adjust the WebUI theme dark / light based on sunrise/sunset for your location.
+								Enter a location below to enable this mode. 
+							</i><br> 
+							<div class="input-group mb-3">
+								{% if settings['ui_config']['auto_theme']['enabled'] %}
+								<input type="text" class="form-control" id="at_location" name="at_location" value="{{ settings['ui_config']['auto_theme']['location'] }}" aria-label="Location" aria-describedby="check_location">
+								{% else %}
+								<input type="text" class="form-control" id="at_location" name="at_location" placeholder="Enter Location (e.g. Bend, OR, USA)" aria-label="Location" aria-describedby="check_location">
+								{% endif %}
+								<div class="input-group-append">
+								  <button class="btn btn-secondary" type="button" id="check_location">Check</button>
+								</div>
+							</div>
+							<div id="check_status">
+							{% if settings['ui_config']['auto_theme']['enabled'] %}
+								<u><b>Location Information:</b></u><br><br>
+								<b><i class="fas fa-map-marked-alt"></i> Latitude/Longitude: </b> <a href="https://www.google.com/maps/search/?api=1&query={{ settings['ui_config']['auto_theme']['latitude'] }},settings['ui_config']['auto_theme']['longitude']" target="about:blank">
+									{{ settings['ui_config']['auto_theme']['latitude'] }}, {{ settings['ui_config']['auto_theme']['longitude'] }}</a><br>
+								<b><i class="fas fa-sun"></i> Sunrise: </b> {{ settings['ui_config']['auto_theme']['sunrise'] }}<br>
+								<b><i class="fas fa-moon"></i> Sunset: </b> {{ settings['ui_config']['auto_theme']['sunset'] }}<br><br>
+							{% endif %}
+							</div>
+						</div>
+						<div class="card-footer"> 
+							<button type="submit" name="auto_theme_update" value="true" class="btn btn-success btn-sm">Save Changes</button>
+						</div>
+					  </div>
+					</div>
+				</div> <!-- END of Accordian -->
+				</form>
+			</div>
+		</div>
+	
+	<br>
+
+	<!-- Local API Settings Card -->
+	<form name="input" action="/admin/api_settings" method="POST">
+		<div class="card">
+				<div class="card-header">
+							Local API Settings
+				<!-- Enable / Disable API -->
+				<span class="float-right">
+				{% if settings['api_config']['enabled'] == True %}
+				<div class="custom-control custom-switch">
+					<input type="checkbox" class="custom-control-input" id="apienable" name="apienable" onclick="$(this).closest('form').submit();" checked>
+					<label class="custom-control-label" for="apienable">Enable</label>
+				</div>
+				{% else %}
+				<div class="custom-control custom-switch">
+					<input type="checkbox" class="custom-control-input" id="apienable" name="apienable" onclick="$(this).closest('form').submit();">
+					<label class="custom-control-label" for="apienable">Enable</label>
+				</div>
+				{% endif %}
+				</span>
+				</div>
+				<div class="card-body">
+				<i>Enabling the API interface allows network applications to control the speaker settings.  This setting will enable the local area network to control your speaker selector.    
+				<br><b>For local access, use:</b>  http://your.ip.address.here/api 
+				<br>
+			</div>
+		</div>
+		</form>
+		<br>
+
+	<!-- External API Settings Card -->
+	<form name="input" action="/admin/extapi_settings" method="POST">
+	<div class="card">
+			<div class="card-header">
+						External API Settings
+			<!-- Enable / Disable API -->
+			<span class="float-right">
+			{% if settings['extapi_config']['enabled'] == True %}
+			<div class="custom-control custom-switch">
+				<input type="checkbox" class="custom-control-input" id="extapienable" name="apienable" onclick="$(this).closest('form').submit();" checked>
+				<label class="custom-control-label" for="extapienable">Enable</label>
+			</div>
+			{% else %}
+			<div class="custom-control custom-switch">
+				<input type="checkbox" class="custom-control-input" id="extapienable" name="apienable" onclick="$(this).closest('form').submit();">
+				<label class="custom-control-label" for="extapienable">Enable</label>
+			</div>
+			{% endif %}
+			</span>
+			</div>
+			<div class="card-body">
+			<i>Enabling the API interface allows network applications to control the speaker settings.  
+			<br><br>For external access (outside your firewall), an API key must be used along with SSL for security purposes.  An API key can be generated here.</i>
+			<br><br>
+			<!-- Generate API Key -->
+			<div class="input-group mb-3">
+				<div class="input-group-prepend">
+				<button class="btn btn-primary" type="submit" name="apigen" value="requested">Generate New API Key</button>
+				</div>
+				<input type="text" class="form-control" value="{{ settings['extapi_config']['api_key'] }}" readonly>
+			</div>
+			<br>
+			<strong>Example URL:</strong> <i>https://yourhome.duckdns.org:34534/extapi/{{ settings['extapi_config']['api_key'] }}</i>
+		</div>
+	</div>
+	</form>
+	<br>
+
+
+      <!-- Admin Functions Card -->
+			<div class="card">
+				<div class="card-header">
+							Administrative Functions
+				</div>
+				<div class="card-body">
+						<!-- Reboot -->
+						<form name="input" action="/admin/reboot">
+							<!-- Button trigger modal -->
+							<button type="button" class="btn btn-warning btn-block" data-toggle="modal" data-target="#rebootModal">
+								Reboot System
+							</button>
+
+							<!-- Reboot Modal -->
+							<div class="modal fade" id="rebootModal" tabindex="-1" role="dialog" aria-labelledby="rebootModalLabel" aria-hidden="true">
+								<div class="modal-dialog" role="document">
+									<div class="modal-content">
+										<div class="modal-header">
+											<h5 class="modal-title" id="rebootModalLabel">Reboot</h5>
+											<button type="button" class="close" data-dismiss="modal" aria-label="Close">
+												<span aria-hidden="true">&times;</span>
+											</button>
+										</div>
+										<div class="modal-body">
+											<p>Are you sure you would like to reboot the system?
+											<br><i>Any unsaved data may be lost.</i></p>
+										</div>
+										<div class="modal-footer">
+											<button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+											<button type="submit" class="btn btn-primary" name="reboot" value="True">Confirm</button>
+										</div>
+									</div>
+								</div>
+							</div>
+
+						</form>
+
+						<br>
+						<!-- Shutdown -->
+						<form name="input" action="/admin/shutdown">
+							<!-- Button trigger modal -->
+							<button type="button" class="btn btn-danger btn-block" data-toggle="modal" data-target="#shutdownModal">
+								Shutdown System
+							</button>
+
+							<!-- Shutdown Modal -->
+							<div class="modal fade" id="shutdownModal" tabindex="-1" role="dialog" aria-labelledby="shutdownModalLabel" aria-hidden="true">
+								<div class="modal-dialog" role="document">
+									<div class="modal-content">
+										<div class="modal-header">
+											<h5 class="modal-title" id="shutdownModalLabel">Shutdown</h5>
+											<button type="button" class="close" data-dismiss="modal" aria-label="Close">
+												<span aria-hidden="true">&times;</span>
+											</button>
+										</div>
+										<div class="modal-body">
+											<p>Are you sure you would like to shutdown the system?
+											<br><i>Any unsaved data may be lost.  System must be manually started after a shutdown.</i></p>
+										</div>
+										<div class="modal-footer">
+											<button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+											<button type="submit" class="btn btn-primary" name="shutdown" value="True">Confirm</button>
+										</div>
+									</div>
+								</div>
+							</div>
+						</form>
+
+					</div>
+				</div>
+			<br>
+
+			<div class="card">
+				<div class="card-header">
+							System Info
+				</div>
+	      <div class="card-body">
+					<b>CPU Info</b><br>
+	        {% for line in cpuinfo %}
+	          {{ line }}<br>
+	        {% endfor %}
+					<br>
+					<p><b>CPU Temperature:</b> {{ temp }}</p>
+					<br>
+					<b>Network Info</b><br>
+					{% for lines in ifconfig %}
+						{{ lines }}<br>
+					{% endfor %}
+	      </div>
+			</div>
+			<br>
+
+			<div class="card">
+				<div class="card-header">
+							Uptime
+				</div>
+	      <div class="card-body">
+					{{ uptime }}
+				</div>
+	    </div>
+			<br>
+
+      <!-- *********** Credits *************** -->
+				<div class="card">
+					<div class="card-header">
+						Credits and Licenses
+					</div>
+
+          <div class="card card-body">
+            <p>Web Application created by <a href="https://parmeter.net/tech" target="blank">Ben Parmeter</a>, copyright 2016-2021. Check out my other projects on <a href="https://github.com/nebhead" target="blank">GitHub.</a></p>
+            <p><i>If you enjoy this software and feel the need to donate a cup of coffee, a frosty beer or a bottle of wine to the developer you can click <a href="https://paypal.me/benparmeter" target="blank">here.</a></i></p>
+            <p><i>Of course, none of this project would be available without the wonderful and amazing folks below... </i></p><br>
+            <ul class="list-group">
+              <li class="list-group-item"><b>Bootstrap</b> - Based entirely on Bootstrap 4.  Bootstrap is released under the MIT license and is copyright 2018 Twitter. (<a href="http://getbootstrap.com" target="blank">getbootstrap.com</a>)</li>
+              <li class="list-group-item"><b>JQuery</b> - Required by Bootstrap. Copyright JS Foundation and other contributors. Released under MIT license. (<a href="https://jquery.org/license/" target="blank">jquery.org/license</a>)</li>
+              <li class="list-group-item"><b>Popper</b> - Required by Bootstrap. Copyright 2016, 2018 FEDERICO ZIVOLO & CONTRIBUTORS. Released under MIT license. (<a href="https://popper.js.org/" target="blank">popper.js.org</a>)</li>
+			  <li class="list-group-item"><b>Bootswatch</b> - Using themes from Bootswatch. Copyright 2012-2020 Thomas Park.  Licensed under MIT. (<a href="http:/bootswatch.com" target="blank">Bootswatch Homepage</a>)</li>
+			  <li class="list-group-item"><b>FontAwesome</b> - Amazing FREE Icons that I use throughout this project.  Copyright Font Awesome.  Released under the Font Awesome Free License. (<a href="https://fontawesome.com/" target="blank">fontawesome.com</a>)(<a href="https://github.com/FortAwesome/Font-Awesome" target="blank">github.com</a>)</li>
+			</ul>
+          </div>
+				</div>
+					<br><br><br>
+
+</div>
+        <!-- Footer -->
+				<div class="container">
+					<nav class="navbar fixed-bottom navbar-light" style="background-color: #e3f2fd;">
+						<span class="navbar-text">
+					    Web Application created by Ben Parmeter, copyright 2016-2021.
+					  </span>
+		 			</nav>
+				</div>
+
+{% endblock %}
+
+{% block scripts %} 
+<script>
+	document.getElementById('check_location').addEventListener('click', function() {
+		
+		// Change to spinner in button #check_location 
+		document.getElementById('check_location').className = 'btn btn-outline-secondary';
+		document.getElementById('check_location').innerHTML = '<div class="spinner-border spinner-border-sm text-primary" role="status"><span class="sr-only">Checking...</span></div> Checking...';
+
+		// Get value from #at_location
+		var location = document.getElementById("at_location").value;
+		console.log('Location: ' + location);
+
+		req = $.ajax({
+			url : '/geocheck',
+			type : 'POST',
+			data : { 'location' : location }
+		});
+		
+		req.done(function(data) {
+			if (data.success == true) {
+				// Change Text in div id = check_status to display location name, lat/long, sunrise/sunset times
+				longitude = data.longitude;
+				latitude = data.latitude;
+				sunrise = data.sunrise;
+				sunset = data.sunset;
+				var status = '<u><b>Location Information:</b></u><br><br>';
+				status += '<b><i class="fas fa-map-marked-alt"></i> Latitude/Longitude: </b> <a href="https://www.google.com/maps/search/?api=1&query=' + latitude + ',' + longitude + '" target="about:blank">';
+				status += latitude + ', ' + longitude + '</a><br>';
+				status += '<b><i class="fas fa-sun"></i> Sunrise: </b>  ' + sunrise + '<br>';
+				status += '<b><i class="fas fa-moon"></i> Sunset: </b>  ' + sunset + '<br><br>';
+
+				document.getElementById('check_status').innerHTML = status;
+				document.getElementById('check_location').className = "btn btn-success";
+				document.getElementById('check_location').innerHTML = '<i class="fas fa-check"></i> Found it!';
+			} else {
+				// Change Text in div id = check_status to Location Check Failed.
+				var status = '<b style="color:red;"><i class="fas fa-exclamation-triangle"></i> Search for location: ' + location + 'has failed.  Please try again. </b>';
+				document.getElementById('check_status').innerHTML = status;
+				document.getElementById('check_location').className = "btn btn-danger";
+				document.getElementById('check_location').innerHTML = '<i class="fas fa-skull"></i> Failed!';
+			};
+		});
+	});
+</script>
+{% endblock %}
