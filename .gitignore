@@ -1,0 +1,14 @@
+
+__pycache__/
+
+local/
+
+logs/events.log
+
+settings.json
+
+*.code-workspace
+
+documents/restricted/
+
+docs/restricted/
