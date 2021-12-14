@@ -53,5 +53,5 @@ Follow the onscreen prompts to complete the installation.  You will be asked to 
 Also note that if you are installing / using the IR Remote capabilities you may need to run the setup_ir.sh script after the reboot.  Simply log back via SSH after your reboot and run the script in the auto-install directory:
 
 ```bash
-$ bash ~\spkr-select-v3\auto-install\setup_ir.sh
+$ bash ~/spkr-select-v3/auto-install/setup_ir.sh
 ```
