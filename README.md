@@ -1,4 +1,4 @@
-# ![SpeakerSelect](documents/pages/photos/launcher-icon-1x.png) Speaker Select V3
+# ![SpeakerSelect](docs/photos/launcher-icon-1x.png) Speaker Select V3
 
 ## Raspberry Pi based Speaker Selector
 
@@ -28,13 +28,13 @@ This project utilizes a Raspberry Pi Zero W (or even the new Pi Zero W 2!), plug
 
 Here is a screenshot of the dashboard:
 
-![Dashboard](documents/pages/photos/spkr-select-v3-dash-00.jpg)
+![Dashboard](docs/photos/spkr-select-v3-dash-00.jpg)
 
 ## Hardware 
 
 A 3D printed enclosure is available for download.  Here is the back of the finished product:
 
-![Hardware](documents/pages/photos/hw-00.jpg)
+![Hardware](docs/photos/hw-00.jpg)
 
 ## Full Documentation
 
