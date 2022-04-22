@@ -14,7 +14,7 @@ if [ "$EUID" -ne 0 ]
 fi
 
 # Move to working directory
-cd /home/pi/spkr-select/certs
+cd /usr/bin/local/spkr-select-v3/certs
 
 # Modify the localhost configuration file
 nano localhost.conf

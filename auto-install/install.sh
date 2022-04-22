@@ -22,7 +22,7 @@ else
         export SUDO="sudo"
         export SUDOE="sudo -E"
     else
-        echo "Please install sudo or run this as root."
+        echo "Please install sudo."
         exit 1
     fi
 fi
@@ -75,8 +75,8 @@ echo "**                                                                     **"
 echo "**      Cloning Speaker-Select from GitHub...                          **"
 echo "**                                                                     **"
 echo "*************************************************************************"
-cd /home/pi/
-#git clone https://github.com/nebhead/spkr-select-v3
+cd /usr/local/bin
+git clone https://github.com/nebhead/spkr-select-v3
 
 ### Setup nginx to proxy to gunicorn
 clear
@@ -86,7 +86,7 @@ echo "**      Configuring nginx...                                           **"
 echo "**                                                                     **"
 echo "*************************************************************************"
 # Move into install directory
-cd /home/pi/spkr-select-v3/auto-install
+cd /usr/local/bin/spkr-select-v3/auto-install/nginx
 
 # Delete default configuration
 $SUDO rm /etc/nginx/sites-enabled/default
@@ -125,7 +125,7 @@ echo "*************************************************************************"
 
 # Copy configuration files (control.conf, webapp.conf) to supervisor config directory
 # NOTE: If you used a different directory for the installation then make sure you edit the *.conf files appropriately
-cd /home/pi/spkr-select-v3/supervisor/
+cd /usr/local/bin/spkr-select-v3/auto-install/supervisor
 
 $SUDO cp *.conf /etc/supervisor/conf.d/
 

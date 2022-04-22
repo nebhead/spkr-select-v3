@@ -80,7 +80,7 @@ if (whiptail --title "Custom IR Remote Setup" --yesno "Do you want to use custom
 	wait $pidtest 
 
 	whiptail --msgbox --backtitle "IR Setup" --title "Edit Config TOML" "The script will now open the TOML file in a text editor, edit the scancodes that you captured in the previous step for the different buttons.  Press CTRL+X to save and exit." ${r} ${c}
-	cd /home/pi/spkr-select-v3/
+	cd /usr/local/bin/spkr-select-v3
 	nano spkrselect.toml
 fi
 
@@ -89,7 +89,7 @@ $SUDO ir-keytable -c
 
 # Write your new configuration
 
-$SUDO ir-keytable -w /home/pi/spkr-select-v3/spkrselect.toml
+$SUDO ir-keytable -w /usr/local/bin/spkr-select-v3/spkrselect.toml
 
 # Read the configuration
 
@@ -109,7 +109,7 @@ else
 fi
 
 # First we need to copy the spkrselect.toml file to the correct location:
-cd /home/pi/spkr-select-v3/
+cd /usr/local/bin/spkr-select-v3
 $SUDO cp spkrselect.toml /etc/rc_keymaps/
 
 # Now, add a row in /etc/rc_maps.cfg:
@@ -123,7 +123,7 @@ echo "**      Configuring Crontab to setup ir-ketyable on reboot...          **"
 echo "**                                                                     **"
 echo "*************************************************************************"
 
-cd /home/pi/spkr-select-v3/
+cd /usr/local/bin/spkr-select-v3
 $SUDO crontab -l > my-crontab
 # Add the following line...
 echo "@reboot ir-keytable -a /etc/rc_maps.cfg -s rc0" >> my-crontab
