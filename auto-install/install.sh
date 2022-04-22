@@ -117,7 +117,6 @@ echo " - Move certs to /etc/ssl"
 $SUDO mv localhost.crt /etc/ssl/certs/localhost.crt
 # Move the private key to the /etc/ssl/private directory
 $SUDO mv localhost.key /etc/ssl/private/localhost.key
-
 # Restart nginx
 echo " - Restart nginx webserver"
 $SUDO service nginx restart
