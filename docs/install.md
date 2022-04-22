@@ -45,7 +45,7 @@ Finish and reboot.
 After you've done the above steps to configure your Raspberry Pi initially, you will need to log in via SSH and at the command line type the following:
 
 ```bash
-curl https://raw.githubusercontent.com/nebhead/spkr-select-v3/main/auto-install/install.sh | bash
+bash <(wget -O - https://raw.githubusercontent.com/nebhead/spkr-select-v3/master/auto-install/install.sh)
 ```
 
 Follow the onscreen prompts to complete the installation.  You will be asked to setup cert for the webserver, which is entirely optional.  If you don't plan on using the external API, you can simply enter all blanks in the CERT questions.  At the end of the script it will reboot, so just be aware of this.  
@@ -53,5 +53,5 @@ Follow the onscreen prompts to complete the installation.  You will be asked to 
 Also note that if you are installing / using the IR Remote capabilities you may need to run the setup_ir.sh script after the reboot.  Simply log back via SSH after your reboot and run the script in the auto-install directory:
 
 ```bash
-$ bash ~/spkr-select-v3/auto-install/setup_ir.sh
+$ bash /usr/local/bin/spkr-select-v3/auto-install/setup_ir.sh
 ```
