@@ -76,7 +76,7 @@ echo "**      Cloning Speaker-Select from GitHub...                          **"
 echo "**                                                                     **"
 echo "*************************************************************************"
 cd /usr/local/bin
-git clone https://github.com/nebhead/spkr-select-v3
+$SUDO git clone https://github.com/nebhead/spkr-select-v3
 
 ### Setup nginx to proxy to gunicorn
 clear
@@ -102,7 +102,7 @@ whiptail --msgbox --backtitle "SSL Certs" --title "Speaker-Select Automated Inst
 cd /home/pi/spkr-select-v3/certs/
 
 # Modify the localhost configuration file
-nano localhost.conf
+$SUDO nano localhost.conf
 
 # Create public and private key pairs based on localhost.conf information
 $SUDO openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout localhost.key -out localhost.crt -config localhost.conf
