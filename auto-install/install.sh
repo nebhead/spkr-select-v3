@@ -99,7 +99,7 @@ $SUDO ln -s /etc/nginx/sites-available/spkr-select /etc/nginx/sites-enabled
 
 whiptail --msgbox --backtitle "SSL Certs" --title "Speaker-Select Automated Installer" "The script will now open a text editor to edit a configuration file for the cert generation.  Fill in the defaults you'd like the signing to use for your instance and when finished, press CTRL+x to save and exit." ${r} ${c}
 
-cd /usr/local/bin/spkr-select-v3/certs/
+cd /usr/local/bin/spkr-select-v3/certs
 
 # Modify the localhost configuration file
 $SUDO nano localhost.conf
