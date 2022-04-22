@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 
-# Speaker-Select Installation Script
+# Speaker-Select-V3 Installation Script
 # Many thanks to the PiVPN project (pivpn.io) for much of the inspiration for this script
 # Run from https://raw.githubusercontent.com/nebhead/spkr-select-v3/master/auto-install/install.sh
 #
 # Install with this command (from your Pi):
 #
-# curl https://raw.githubusercontent.com/nebhead/spkr-select-v3/master/auto-install/install.sh | bash
+# bash <(wget -O - https://raw.githubusercontent.com/nebhead/spkr-select-v3/master/auto-install/install.sh)
 #
 # WARNING: Do NOT run with SUDO or the cd commands will not work properly (i.e. they will use root
 # instead of the pi user).  This command will automatically get SUDO and use in the proper places.
@@ -103,21 +103,6 @@ $SUDO ln -s /etc/nginx/sites-available/spkr-select /etc/nginx/sites-enabled
 whiptail --msgbox --backtitle "SSL Certs" --title "Speaker-Select Automated Installer" "The script will now open a text editor to edit a configuration file for the cert generation.  Fill in the defaults you'd like the signing to use for your instance and when finished, press CTRL+x to save and exit." ${r} ${c}
 
 cd /usr/local/bin/spkr-select-v3/certs
-
-# Modify the localhost configuration file.  NOTE: Commented out since this appears to cause issues with the install from the web
-#echo " - Editing localhost.conf with nano"
-#$SUDO nano localhost.conf
-
-# Create public and private key pairs based on localhost.conf information
-#echo " - Running OpenSSL to generate key pairs"
-#$SUDO openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout localhost.key -out localhost.crt -config localhost.conf
-#$SUDO openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout localhost.key -out localhost.crt
-
-#echo " - Move certs to /etc/ssl"
-# Move the public key to the /etc/ssl/certs directory
-#$SUDO mv localhost.crt /etc/ssl/certs/localhost.crt
-# Move the private key to the /etc/ssl/private directory
-#$SUDO mv localhost.key /etc/ssl/private/localhost.key
 
 # Generate certs
 $SUDO bash -i generate.sh 
