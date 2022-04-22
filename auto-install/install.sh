@@ -89,12 +89,15 @@ echo "*************************************************************************"
 cd /usr/local/bin/spkr-select-v3/auto-install/nginx
 
 # Delete default configuration
+echo " - Delete default configuration"
 $SUDO rm /etc/nginx/sites-enabled/default
 
 # Copy configuration file to nginx
+echo " - Copy configuration file to nginx"
 $SUDO cp spkr-select.nginx /etc/nginx/sites-available/spkr-select
 
 # Create link in sites-enabled
+echo " - Create a link to sites-enabled"
 $SUDO ln -s /etc/nginx/sites-available/spkr-select /etc/nginx/sites-enabled
 
 whiptail --msgbox --backtitle "SSL Certs" --title "Speaker-Select Automated Installer" "The script will now open a text editor to edit a configuration file for the cert generation.  Fill in the defaults you'd like the signing to use for your instance and when finished, press CTRL+x to save and exit." ${r} ${c}
@@ -102,17 +105,21 @@ whiptail --msgbox --backtitle "SSL Certs" --title "Speaker-Select Automated Inst
 cd /usr/local/bin/spkr-select-v3/certs
 
 # Modify the localhost configuration file
+echo " - Editing localhost.conf with nano"
 $SUDO nano localhost.conf
 
 # Create public and private key pairs based on localhost.conf information
+echo " - Running OpenSSL to generate key pairs"
 $SUDO openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout localhost.key -out localhost.crt -config localhost.conf
 
+echo " - Move certs to /etc/ssl"
 # Move the public key to the /etc/ssl/certs directory
 $SUDO mv localhost.crt /etc/ssl/certs/localhost.crt
 # Move the private key to the /etc/ssl/private directory
 $SUDO mv localhost.key /etc/ssl/private/localhost.key
 
 # Restart nginx
+echo " - Restart nginx webserver"
 $SUDO service nginx restart
 
 ### Setup Supervisor to Start Apps on Boot / Restart on Failures
