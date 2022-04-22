@@ -110,7 +110,8 @@ cd /usr/local/bin/spkr-select-v3/certs
 
 # Create public and private key pairs based on localhost.conf information
 echo " - Running OpenSSL to generate key pairs"
-$SUDO openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout localhost.key -out localhost.crt -config localhost.conf
+#$SUDO openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout localhost.key -out localhost.crt -config localhost.conf
+$SUDO openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout localhost.key -out localhost.crt
 
 echo " - Move certs to /etc/ssl"
 # Move the public key to the /etc/ssl/certs directory
