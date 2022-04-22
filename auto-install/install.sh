@@ -2,11 +2,11 @@
 
 # Speaker-Select Installation Script
 # Many thanks to the PiVPN project (pivpn.io) for much of the inspiration for this script
-# Run from https://raw.githubusercontent.com/nebhead/spkr-select/master/auto-install/install.sh
+# Run from https://raw.githubusercontent.com/nebhead/spkr-select-v3/master/auto-install/install.sh
 #
 # Install with this command (from your Pi):
 #
-# curl https://raw.githubusercontent.com/nebhead/spkr-select/master/auto-install/install.sh | bash
+# curl https://raw.githubusercontent.com/nebhead/spkr-select-v3/master/auto-install/install.sh | bash
 #
 # WARNING: Do NOT run with SUDO or the cd commands will not work properly (i.e. they will use root
 # instead of the pi user).  This command will automatically get SUDO and use in the proper places.
@@ -109,15 +109,19 @@ cd /usr/local/bin/spkr-select-v3/certs
 #$SUDO nano localhost.conf
 
 # Create public and private key pairs based on localhost.conf information
-echo " - Running OpenSSL to generate key pairs"
+#echo " - Running OpenSSL to generate key pairs"
 #$SUDO openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout localhost.key -out localhost.crt -config localhost.conf
-$SUDO openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout localhost.key -out localhost.crt
+#$SUDO openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout localhost.key -out localhost.crt
 
-echo " - Move certs to /etc/ssl"
+#echo " - Move certs to /etc/ssl"
 # Move the public key to the /etc/ssl/certs directory
-$SUDO mv localhost.crt /etc/ssl/certs/localhost.crt
+#$SUDO mv localhost.crt /etc/ssl/certs/localhost.crt
 # Move the private key to the /etc/ssl/private directory
-$SUDO mv localhost.key /etc/ssl/private/localhost.key
+#$SUDO mv localhost.key /etc/ssl/private/localhost.key
+
+# Generate certs
+$SUDO bash -i generate.sh 
+
 # Restart nginx
 echo " - Restart nginx webserver"
 $SUDO service nginx restart
