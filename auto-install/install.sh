@@ -104,9 +104,9 @@ whiptail --msgbox --backtitle "SSL Certs" --title "Speaker-Select Automated Inst
 
 cd /usr/local/bin/spkr-select-v3/certs
 
-# Modify the localhost configuration file
-echo " - Editing localhost.conf with nano"
-$SUDO nano localhost.conf
+# Modify the localhost configuration file.  NOTE: Commented out since this appears to cause issues with the install from the web
+#echo " - Editing localhost.conf with nano"
+#$SUDO nano localhost.conf
 
 # Create public and private key pairs based on localhost.conf information
 echo " - Running OpenSSL to generate key pairs"
