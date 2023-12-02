@@ -24,7 +24,7 @@ def main():
 	 *****************************************
 	"""
 	event = 'Control Script Starting.'
-	WriteLog(event)
+	WriteLog(event, logger_name='control')
 
 	status = redis.Redis()
 	status.flushall()

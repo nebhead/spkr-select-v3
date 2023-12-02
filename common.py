@@ -2,6 +2,8 @@ import datetime
 import io
 import os
 import json
+import logging 
+import ratelimitingfilter
 
 def DefaultSettings():
 	settings = {}
@@ -207,20 +209,45 @@ def ReadLog():
 
 	return(event_list, num_events)
 
-def WriteLog(event):
+def create_logger(name, filename='./logs/global.log', messageformat='%(asctime)s | %(levelname)s | %(message)s', level=logging.INFO):
+	'''Create or Get Existing Logger'''
+	logger = logging.getLogger(name)
+	''' 
+		If the logger does not exist, create one. Else return the logger. 
+		Note: If the a log-level change is needed, the developer should directly set the log level on the logger, instead of using 
+		this function.  
+	'''
+	if not logger.hasHandlers():
+		logger.setLevel(level)
+		formatter = logging.Formatter(fmt=messageformat, datefmt='%Y-%m-%d %H:%M:%S')
+		# datefmt='%Y-%m-%d %H:%M:%S'
+		# Add a rate limit filter to reduce multiple rapid bursts of errors 
+		#config = {'match': ['Put String Filter Here']}
+		#ratelimit = RateLimitingFilter(rate=1, per=60, burst=5, **config)  # Allow 1 per 60s (with periodic burst of 5)
+		handler = logging.FileHandler(filename)        
+		handler.setFormatter(formatter)
+		#handler.addFilter(ratelimit)  # Add the rate limit filter
+		logger.addHandler(handler)
+	return logger
+
+def WriteLog(event, logger_name='global'):
 	# *****************************************
 	# Function: WriteLog
 	# Input: str event
 	# Description: Write event to event.log
 	#  Event should be a string.
 	# *****************************************
+    """
 	now = str(datetime.datetime.now())
 	now = now[0:19] # Truncate the microseconds
 
 	logfile = open("logs/events.log", "a")
 	logfile.write(now + ' ' + event + '\n')
 	logfile.close()
-
+	"""
+    logger = create_logger(logger_name)
+    logger.info(event)
+      
 '''
 is_raspberrypi() function borrowed from user https://raspberrypi.stackexchange.com/users/126953/chris
   in post: https://raspberrypi.stackexchange.com/questions/5100/detect-that-a-python-program-is-running-on-the-pi

@@ -87,7 +87,7 @@ class RasPiPlatform(SpeakerPlatform):
 	
 			if not self.remotecontrol:
 				event = 'Error setting up IR Input: gpio_ir_recv not found in list of devices.'
-				WriteLog(event)
+				WriteLog(event, logger_name='control')
 				# Disable ir_input
 				self.settings['options']['ir_input'] = False
 

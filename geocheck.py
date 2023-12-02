@@ -1,6 +1,7 @@
 from geopy.geocoders import Nominatim  # pip3 install geopy
 import datetime
-from suntime import Sun  # pip3 install suntime 
+from suntime import Sun  # pip3 install suntime
+from common import WriteLog
 
 def location_check(location):
 	result = {}
@@ -15,8 +16,9 @@ def location_check(location):
 		result['longitude'] = long 
 		result['location'] = location 
 	except:
-		# If any error occured, return false
-		result['success'] = False 
+		# If any error occurred, return false
+		result['success'] = False
+		WriteLog('Location Check Failed.')
 
 	return(result)
 
@@ -35,8 +37,9 @@ def get_sunrise_sunset(lat, long):
 		result['sunset'] = today_ss.time().strftime('%H:%M')
 		result['lastupdate'] = datetime.datetime.now().strftime('%Y-%m-%d')
 	except:
-		# If any error occured, return false
+		# If any error occurred, return false
 		result['success'] = False 
+		WriteLog('Error occurred getting sunrise/sunset.')
 
 	return(result)
 

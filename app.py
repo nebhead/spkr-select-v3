@@ -265,14 +265,14 @@ def admin(action=None):
 
 	if action == 'reboot':
 		event = "Admin: Reboot"
-		WriteLog(event)
+		WriteLog(event, logger_name='webapp')
 		if(is_raspberrypi()):
 			os.system("sleep 3 && sudo reboot &")
 		return render_template('shutdown.html', action=action, pagetheme=settings['ui_config']['pagetheme'])
 
 	elif action == 'shutdown':
 		event = "Admin: Shutdown"
-		WriteLog(event)
+		WriteLog(event, logger_name='webapp')
 		if(is_raspberrypi()):
 			os.system("sleep 3 && sudo shutdown -h now &")
 		return render_template('shutdown.html', action=action, pagetheme=settings['ui_config']['pagetheme'])
@@ -305,7 +305,7 @@ def api(action=None):
 		if (request.method == 'POST'):
 			if not request.json:
 				event = "Local API Call Failed - Local API interface not enabled.  Calling IP: " + ipaddress
-				WriteLog(event)
+				WriteLog(event, logger_name='webapp')
 				abort(400)
 			else:
 				spkr_state = read_states()
@@ -320,7 +320,7 @@ def api(action=None):
 
 				write_states(spkr_state)
 				event = "Local API Call Success from " + ipaddress
-				#WriteLog(event)
+				#WriteLog(event, logger_name='webapp')
 				return jsonify({'spkr_00' : spkr_state['spkr_00'], 
 					'spkr_01' : spkr_state['spkr_01'],
 					'spkr_02' : spkr_state['spkr_02'],
@@ -328,7 +328,7 @@ def api(action=None):
 			
 		if (request.method == 'GET'):
 			event = "Local API Call Success from " + ipaddress
-			#WriteLog(event)
+			#WriteLog(event, logger_name='webapp')
 			spkr_state = read_states()
 			return jsonify({'spkr_00' : spkr_state['spkr_00'], 
 							'spkr_01' : spkr_state['spkr_01'],
@@ -336,7 +336,7 @@ def api(action=None):
 							'spkr_03' : spkr_state['spkr_03']}), 201
 
 	event = 'Local API Call Failed from ' + ipaddress
-	WriteLog(event)
+	WriteLog(event, logger_name='webapp')
 
 	abort(404)
 
@@ -349,16 +349,16 @@ def extapi(action=None):
 
 	if(action):
 		event = "External API Call with key: " + str(action) + " from " + str(ipaddress)
-		WriteLog(event)
+		WriteLog(event, logger_name='webapp')
 	else:
 		event = "External API Call with no key from " + str(ipaddress)
-		WriteLog(event)
+		WriteLog(event, logger_name='webapp')
 
 	if (settings['extapi_config']['enabled'] == True):
 		if (request.method == 'POST') and (action == settings['extapi_config']['api_key']):
 			if not request.json:
 				event = "External API Call from " + str(ipaddress) + " failed due to to absence of JSON data."
-				WriteLog(event)
+				WriteLog(event, logger_name='webapp')
 				abort(400)
 			else:
 				spkr_state = read_states()
@@ -373,7 +373,7 @@ def extapi(action=None):
 
 			write_states(spkr_state)
 			event = "External API Call Success from " + ipaddress
-			WriteLog(event)
+			WriteLog(event, logger_name='webapp')
 			return jsonify({'spkr_00' : spkr_state['spkr_00'], 
 				'spkr_01' : spkr_state['spkr_01'],
 				'spkr_02' : spkr_state['spkr_02'],
@@ -382,7 +382,7 @@ def extapi(action=None):
 		if (request.method == 'GET') and (action == settings['extapi_config']['api_key']):
 			spkr_state = read_states()
 			event = "External API Call Success from " + ipaddress
-			WriteLog(event)
+			WriteLog(event, logger_name='webapp')
 			return jsonify({'spkr_00' : spkr_state['spkr_00'], 
 							'spkr_01' : spkr_state['spkr_01'],
 							'spkr_02' : spkr_state['spkr_02'],
@@ -390,7 +390,7 @@ def extapi(action=None):
 
 	ipaddress = request.remote_addr
 	event = 'External API Call Failed from ' + ipaddress
-	WriteLog(event)
+	WriteLog(event, logger_name='webapp')
 
 	abort(404)
 
@@ -413,7 +413,7 @@ def read_states():
 		return(spkr_state)
 	except:
 		event = "Error reading speakers state from Redis.  Please ensure control.py is running."
-		WriteLog(event)
+		WriteLog(event, logger_name='webapp')
 		spkr_state = DefaultStates()
 		return(spkr_state)
 
