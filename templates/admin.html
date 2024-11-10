@@ -209,7 +209,7 @@
 							<div id="check_status">
 							{% if settings['ui_config']['auto_theme']['enabled'] %}
 								<u><b>Location Information:</b></u><br><br>
-								<b><i class="fas fa-map-marked-alt"></i> Latitude/Longitude: </b> <a href="https://www.google.com/maps/search/?api=1&query={{ settings['ui_config']['auto_theme']['latitude'] }},settings['ui_config']['auto_theme']['longitude']" target="about:blank">
+								<b><i class="fas fa-map-marked-alt"></i> Latitude/Longitude: </b> <a href="https://www.google.com/maps/search/?api=1&query={{ settings['ui_config']['auto_theme']['latitude'] }},{{ settings['ui_config']['auto_theme']['longitude'] }}" target="about:blank">
 									{{ settings['ui_config']['auto_theme']['latitude'] }}, {{ settings['ui_config']['auto_theme']['longitude'] }}</a><br>
 								<b><i class="fas fa-sun"></i> Sunrise: </b> {{ settings['ui_config']['auto_theme']['sunrise'] }}<br>
 								<b><i class="fas fa-moon"></i> Sunset: </b> {{ settings['ui_config']['auto_theme']['sunset'] }}<br><br>
