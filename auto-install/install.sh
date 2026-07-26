@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+set -Eeuo pipefail
+
 # Speaker-Select-V3 Installation Script
 # Many thanks to the PiVPN project (pivpn.io) for much of the inspiration for this script
 # Run from https://raw.githubusercontent.com/nebhead/spkr-select-v3/master/auto-install/install.sh
@@ -7,24 +9,89 @@
 # Install with this command (from your Pi):
 #
 # bash <(wget -O - https://raw.githubusercontent.com/nebhead/spkr-select-v3/master/auto-install/install.sh)
-#
-# WARNING: Do NOT run with SUDO or the cd commands will not work properly (i.e. they will use root
-# instead of the pi user).  This command will automatically get SUDO and use in the proper places.
+
+SUDO=""
+SUDO_KEEPALIVE_PID=""
+TMP_CONTROL_CONF=""
+TMP_WEBAPP_CONF=""
+
+INSTALL_USER="${SUDO_USER:-${USER}}"
+INSTALL_HOME="$(getent passwd "$INSTALL_USER" | cut -d: -f6)"
+INSTALL_HOME="${INSTALL_HOME:-$HOME}"
+LOG_FILE="$INSTALL_HOME/spkr-select-install-$(date +%Y%m%d-%H%M%S).log"
+
+log_command() {
+    echo
+    echo "[COMMAND] $*"
+    set +e
+    "$@" 2>&1 | tee -a "$LOG_FILE"
+    local rc=${PIPESTATUS[0]}
+    set -e
+    if [[ $rc -ne 0 ]]; then
+        log_note "ERROR: Command failed with exit code ${rc}: $*"
+    fi
+    return $rc
+}
+
+log_note() {
+    echo "$*" | tee -a "$LOG_FILE"
+}
+
+on_error() {
+    local exit_code="$?"
+    local line_no="$1"
+    local failed_command="$2"
+
+    log_note "ERROR: Command failed with exit code ${exit_code} at line ${line_no}: ${failed_command}"
+    log_note "Installation aborted. Review installer log: ${LOG_FILE}"
+    exit "${exit_code}"
+}
+
+banner() {
+    log_note "*************************************************************************"
+    log_note "**                                                                     **"
+    log_note "**      $1"
+    log_note "**                                                                     **"
+    log_note "*************************************************************************"
+}
+
+cleanup() {
+    if [[ -n "$SUDO_KEEPALIVE_PID" ]]; then
+        kill "$SUDO_KEEPALIVE_PID" >/dev/null 2>&1 || true
+    fi
+    if [[ -n "$TMP_CONTROL_CONF" && -f "$TMP_CONTROL_CONF" ]]; then
+        rm -f "$TMP_CONTROL_CONF"
+    fi
+    if [[ -n "$TMP_WEBAPP_CONF" && -f "$TMP_WEBAPP_CONF" ]]; then
+        rm -f "$TMP_WEBAPP_CONF"
+    fi
+}
+
+trap 'on_error "$LINENO" "$BASH_COMMAND"' ERR
+trap cleanup EXIT
+
+log_note "Installer log: $LOG_FILE"
+log_note "Started: $(date '+%Y-%m-%d %H:%M:%S %Z')"
 
 # Must be root to install
-if [[ $EUID -eq 0 ]];then
-    echo "You are root."
+if [[ $EUID -eq 0 ]]; then
+    log_note "You are root."
 else
-    echo "SUDO will be used for the install."
-    # Check if it is actually installed
-    # If it isn't, exit because the install cannot complete
-    if [[ $(dpkg-query -s sudo) ]];then
+    log_note "SUDO will be used for the install."
+    if command -v sudo >/dev/null 2>&1; then
         export SUDO="sudo"
-        export SUDOE="sudo -E"
     else
-        echo "Please install sudo."
+        log_note "Please install sudo."
         exit 1
     fi
+
+    # Authenticate once up front, then refresh sudo timestamp while installer runs.
+    log_note "*************************************************************************"
+    log_note "Please enter your sudo password to continue installation."
+    log_note "*************************************************************************"
+    sudo -v || { log_note "Failed to authenticate with sudo."; exit 1; }
+    while true; do sudo -n true; sleep 60; kill -0 "$$" || exit; done 2>/dev/null &
+    SUDO_KEEPALIVE_PID=$!
 fi
 
 # Find the rows and columns. Will default to 80x24 if it can not be detected.
@@ -43,122 +110,117 @@ c=$(( c < 70 ? 70 : c ))
 whiptail --msgbox --backtitle "Welcome" --title "Speaker-Select Automated Installer" "This installer will transform your Raspberry Pi into a smart speaker-selector.  NOTE: This installer is intended to be run on a fresh install of Raspberry Pi OS (Buster) or later." ${r} ${c}
 
 # Starting actual steps for installation
-clear
-echo "*************************************************************************"
-echo "**                                                                     **"
-echo "**      Running Apt Update... (This could take several minutes)        **"
-echo "**                                                                     **"
-echo "*************************************************************************"
-$SUDO apt update
-clear
-echo "*************************************************************************"
-echo "**                                                                     **"
-echo "**      Running Apt Upgrade... (This could take several minutes)       **"
-echo "**                                                                     **"
-echo "*************************************************************************"
-$SUDO apt upgrade -y
+banner "Running Apt Update... (This could take several minutes)"
+log_command $SUDO apt update
+banner "Running Apt Upgrade... (This could take several minutes)"
+log_command $SUDO apt upgrade -y
 
-# Install dependancies
-clear
-echo "*************************************************************************"
-echo "**                                                                     **"
-echo "**      Installing Dependancies... (This could take several minutes)   **"
-echo "**                                                                     **"
-echo "*************************************************************************"
-$SUDO apt install python3-dev python3-pip nginx git gunicorn supervisor ir-keytable redis-server -y
-$SUDO pip3 install flask evdev redis gpiozero geopy suntime
+# Install dependencies
+banner "Installing Dependencies... (This could take several minutes)"
+log_command $SUDO apt install python3-dev python3-pip python3-venv nginx git supervisor ir-keytable redis-server -y
+
+if grep -q "Raspberry Pi 5" /proc/device-tree/model 2>/dev/null; then
+    log_note "Raspberry Pi 5 detected. Installing python3-rpi-lgpio."
+    log_command $SUDO apt install python3-rpi-lgpio -y
+else
+    log_command $SUDO apt install python3-rpi.gpio -y
+fi
 
 # Grab project files
-clear
-echo "*************************************************************************"
-echo "**                                                                     **"
-echo "**      Cloning Speaker-Select from GitHub...                          **"
-echo "**                                                                     **"
-echo "*************************************************************************"
+banner "Cloning Speaker-Select from GitHub..."
 cd /usr/local/bin
-$SUDO git clone https://github.com/nebhead/spkr-select-v3
+if [[ -d /usr/local/bin/spkr-select-v3 ]]; then
+    log_note "Existing /usr/local/bin/spkr-select-v3 directory found."
+    log_note "Please remove or rename it before running this installer."
+    exit 1
+fi
+log_command $SUDO git clone https://github.com/nebhead/spkr-select-v3
+
+### Setup Python VENV and Install Python dependencies
+banner "Setting up Python VENV and installing modules..."
+log_command $SUDO python3 -m venv --system-site-packages /usr/local/bin/spkr-select-v3/.venv
+log_command $SUDO /usr/local/bin/spkr-select-v3/.venv/bin/pip install --upgrade pip
+log_command $SUDO /usr/local/bin/spkr-select-v3/.venv/bin/pip install -r /usr/local/bin/spkr-select-v3/auto-install/requirements.txt
 
 ### Setup nginx to proxy to gunicorn
-clear
-echo "*************************************************************************"
-echo "**                                                                     **"
-echo "**      Configuring nginx...                                           **"
-echo "**                                                                     **"
-echo "*************************************************************************"
+banner "Configuring nginx..."
 # Move into install directory
 cd /usr/local/bin/spkr-select-v3/auto-install/nginx
 
 # Delete default configuration
-echo " - Delete default configuration"
-$SUDO rm /etc/nginx/sites-enabled/default
+if [[ -e /etc/nginx/sites-enabled/default ]]; then
+    log_command $SUDO rm /etc/nginx/sites-enabled/default
+else
+    log_note "Default nginx site already removed."
+fi
 
 # Copy configuration file to nginx
-echo " - Copy configuration file to nginx"
-$SUDO cp spkr-select.nginx /etc/nginx/sites-available/spkr-select
+log_command $SUDO cp spkr-select.nginx /etc/nginx/sites-available/spkr-select
 
 # Create link in sites-enabled
-echo " - Create a link to sites-enabled"
-$SUDO ln -s /etc/nginx/sites-available/spkr-select /etc/nginx/sites-enabled
+if [[ -L /etc/nginx/sites-enabled/spkr-select || -e /etc/nginx/sites-enabled/spkr-select ]]; then
+    log_note "nginx site link already exists."
+else
+    log_command $SUDO ln -s /etc/nginx/sites-available/spkr-select /etc/nginx/sites-enabled/spkr-select
+fi
 
 whiptail --msgbox --backtitle "SSL Certs" --title "Speaker-Select Automated Installer" "The script will now open a text editor to edit a configuration file for the cert generation.  Fill in the defaults you'd like the signing to use for your instance and when finished, press CTRL+x to save and exit." ${r} ${c}
 
 cd /usr/local/bin/spkr-select-v3/certs
 
 # Generate certs
-$SUDO bash -i generate.sh 
+log_command $SUDO bash -i generate.sh
 
 # Restart nginx
-echo " - Restart nginx webserver"
-$SUDO service nginx restart
+log_command $SUDO service nginx restart
 
 ### Setup Supervisor to Start Apps on Boot / Restart on Failures
-clear
-echo "*************************************************************************"
-echo "**                                                                     **"
-echo "**      Configuring Supervisord...                                     **"
-echo "**                                                                     **"
-echo "*************************************************************************"
+banner "Configuring Supervisord..."
 
 # Copy configuration files (control.conf, webapp.conf) to supervisor config directory
 # NOTE: If you used a different directory for the installation then make sure you edit the *.conf files appropriately
 cd /usr/local/bin/spkr-select-v3/auto-install/supervisor
-
-$SUDO cp *.conf /etc/supervisor/conf.d/
+TMP_CONTROL_CONF=$(mktemp)
+TMP_WEBAPP_CONF=$(mktemp)
+sed "s/__INSTALL_USER__/${INSTALL_USER}/g" control.conf > "$TMP_CONTROL_CONF"
+sed "s/__INSTALL_USER__/${INSTALL_USER}/g" webapp.conf > "$TMP_WEBAPP_CONF"
+log_command $SUDO cp "$TMP_CONTROL_CONF" /etc/supervisor/conf.d/control.conf
+log_command $SUDO cp "$TMP_WEBAPP_CONF" /etc/supervisor/conf.d/webapp.conf
 
 SVISOR=$(whiptail --title "Would you like to enable the supervisor WebUI?" --radiolist "This allows you to check the status of the supervised processes via a web browser, and also allows those processes to be restarted directly from this interface. (Recommended)" 20 78 2 "ENABLE_SVISOR" "Enable the WebUI" ON "DISABLE_SVISOR" "Disable the WebUI" OFF 3>&1 1>&2 2>&3)
 
 if [[ $SVISOR = "ENABLE_SVISOR" ]];then
-   echo " " | sudo tee -a /etc/supervisor/supervisord.conf > /dev/null
-   echo "[inet_http_server]" | sudo tee -a /etc/supervisor/supervisord.conf > /dev/null
-   echo "port = 9001" | sudo tee -a /etc/supervisor/supervisord.conf > /dev/null
+    echo " " | $SUDO tee -a /etc/supervisor/supervisord.conf > /dev/null
+    echo "[inet_http_server]" | $SUDO tee -a /etc/supervisor/supervisord.conf > /dev/null
+    echo "port = 9001" | $SUDO tee -a /etc/supervisor/supervisord.conf > /dev/null
    USERNAME=$(whiptail --inputbox "Choose a username [default: user]" 8 78 user --title "Choose Username" 3>&1 1>&2 2>&3)
-   echo "username = " $USERNAME | sudo tee -a /etc/supervisor/supervisord.conf > /dev/null
+    echo "username = ${USERNAME}" | $SUDO tee -a /etc/supervisor/supervisord.conf > /dev/null
    PASSWORD=$(whiptail --passwordbox "Enter your password" 8 78 --title "Choose Password" 3>&1 1>&2 2>&3)
-   echo "password = " $PASSWORD | sudo tee -a /etc/supervisor/supervisord.conf > /dev/null
+    echo "password = ${PASSWORD}" | $SUDO tee -a /etc/supervisor/supervisord.conf > /dev/null
    whiptail --msgbox --backtitle "Supervisor WebUI Setup" --title "Setup Completed" "You now should be able to access the Supervisor WebUI at http://your.ip.address.here:9001 with the username and password you have chosen." ${r} ${c}
 else
-   echo "No WebUI Setup."
+    log_note "No WebUI Setup."
 fi
 
-echo "Starting Supervisor Service..."
 # If supervisor isn't already running, startup Supervisor
-$SUDO service supervisor start
+log_command $SUDO service supervisor start
 
 # Check if the user would like to install IR support.  
 if (whiptail --title "Setup IR Support" --yesno "Do you want to setup IR support?" 8 78); then
 	if grep -Fxq "dtoverlay=gpio-ir,gpio_pin=27" /boot/config.txt 
 	then
-    	echo "/boot/config.txt already setup with GPIO pin 27, skipping step."
+        log_note "/boot/config.txt already setup with GPIO pin 27, skipping step."
 	else
-    	echo "Adding GPIO Pin 27, IR Support to the /boot/config.txt file..."
-    	echo "dtoverlay=gpio-ir,gpio_pin=27" | $SUDO tee -a /boot/config.txt > /dev/null
+        log_note "Adding GPIO Pin 27, IR Support to the /boot/config.txt file..."
+        log_command $SUDO tee -a /boot/config.txt > /dev/null <<<'dtoverlay=gpio-ir,gpio_pin=27'
 	fi
 	# Let the user know that the installation needs to be completed after a reboot
 	whiptail --msgbox --backtitle "Install Almost Complete / Reboot Required" --title "Reboot" "Congratulations, the installation is almost complete.  At this time, we will perform a reboot and your application should be ready.  You should be able to access your application by opening a browser on your PC or other device and using the IP address for this Pi.  To continue to setup the IR Remote capability after the reboot, ssh into the pi again and run 'bash /usr/local/bin/spkr-select-v3/auto-install/setup_ir.sh'.  This should walk through the steps to complete your setup." ${r} ${c}
 else
-    echo "Skipping IR Setup."
+    log_note "Skipping IR Setup."
 	whiptail --msgbox --backtitle "Install Complete / Reboot Required" --title "Installation Completed - Rebooting" "Congratulations, the installation is complete.  At this time, we will perform a reboot and your application should be ready.  You should be able to access your application by opening a browser on your PC or other device and using the IP address for this Pi.  Enjoy!" ${r} ${c}
 fi
 
 # Rebooting
-$SUDO reboot
+log_note "Rebooting now."
+log_command $SUDO reboot

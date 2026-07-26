@@ -1,0 +1,7 @@
+Flask
+geopy
+suntime
+redis
+gpiozero
+evdev
+gunicorn
