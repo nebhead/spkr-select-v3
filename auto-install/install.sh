@@ -164,12 +164,13 @@ else
     log_command $SUDO ln -s /etc/nginx/sites-available/spkr-select /etc/nginx/sites-enabled/spkr-select
 fi
 
-whiptail --msgbox --backtitle "SSL Certs" --title "Speaker-Select Automated Installer" "The script will now open a text editor to edit a configuration file for the cert generation.  Fill in the defaults you'd like the signing to use for your instance and when finished, press CTRL+x to save and exit." ${r} ${c}
-
-cd /usr/local/bin/spkr-select-v3/certs
-
-# Generate certs
-log_command $SUDO bash -i generate.sh
+# Generate self-signed SSL certificate (non-interactive)
+banner "Generating Self-Signed SSL Certificate..."
+if ! log_command $SUDO openssl req -x509 -nodes -days 3650 -newkey rsa:2048 -keyout /etc/ssl/private/localhost.key -out /etc/ssl/certs/localhost.crt -subj "/CN=localhost" -batch; then
+    log_note "WARNING: Failed to generate SSL certificate. HTTPS may not function correctly."
+else
+    log_note "SSL certificate generation successful."
+fi
 
 # Restart nginx
 log_command $SUDO service nginx restart
