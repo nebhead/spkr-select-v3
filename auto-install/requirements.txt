@@ -1,7 +1,7 @@
 Flask
+gunicorn
 geopy
 suntime
 redis
 gpiozero
 evdev
-gunicorn
