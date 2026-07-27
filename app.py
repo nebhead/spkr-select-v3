@@ -13,6 +13,7 @@
 
 from flask import Flask, request, render_template, make_response, jsonify, abort, redirect
 import os
+import shutil
 import secrets
 from common import *  # Common Library for WebUI and Control Program
 import redis # pip3 install redis
@@ -23,6 +24,8 @@ settings = ReadJSON('settings')
 app = Flask(__name__)
 
 cmdsts = redis.Redis()
+REBOOT_BIN = shutil.which('reboot')
+SHUTDOWN_BIN = shutil.which('shutdown')
 
 @app.route('/')
 def index():
@@ -267,14 +270,20 @@ def admin(action=None):
 		event = "Admin: Reboot"
 		WriteLog(event)
 		if(is_raspberrypi()):
-			os.system("sleep 3 && sudo reboot &")
+			if REBOOT_BIN:
+				os.system(f"sleep 3 && sudo {REBOOT_BIN} &")
+			else:
+				WriteLog('Admin: Reboot command not found; request ignored.')
 		return render_template('shutdown.html', action=action, pagetheme=settings['ui_config']['pagetheme'])
 
 	elif action == 'shutdown':
 		event = "Admin: Shutdown"
 		WriteLog(event)
 		if(is_raspberrypi()):
-			os.system("sleep 3 && sudo shutdown -h now &")
+			if SHUTDOWN_BIN:
+				os.system(f"sleep 3 && sudo {SHUTDOWN_BIN} -h now &")
+			else:
+				WriteLog('Admin: Shutdown command not found; request ignored.')
 		return render_template('shutdown.html', action=action, pagetheme=settings['ui_config']['pagetheme'])
 
 	uptime = os.popen('uptime').readline()

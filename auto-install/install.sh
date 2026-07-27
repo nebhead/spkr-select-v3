@@ -14,10 +14,13 @@ SUDO=""
 SUDO_KEEPALIVE_PID=""
 TMP_CONTROL_CONF=""
 TMP_WEBAPP_CONF=""
+TMP_SUDOERS_CONF=""
 
 INSTALL_USER="${SUDO_USER:-${USER}}"
 INSTALL_HOME="$(getent passwd "$INSTALL_USER" | cut -d: -f6)"
 INSTALL_HOME="${INSTALL_HOME:-$HOME}"
+INSTALL_GROUP="spkrselect"
+INSTALL_DIR="/usr/local/bin/spkr-select-v3"
 LOG_FILE="$INSTALL_HOME/spkr-select-install-$(date +%Y%m%d-%H%M%S).log"
 
 log_command() {
@@ -64,6 +67,9 @@ cleanup() {
     fi
     if [[ -n "$TMP_WEBAPP_CONF" && -f "$TMP_WEBAPP_CONF" ]]; then
         rm -f "$TMP_WEBAPP_CONF"
+    fi
+    if [[ -n "$TMP_SUDOERS_CONF" && -f "$TMP_SUDOERS_CONF" ]]; then
+        rm -f "$TMP_SUDOERS_CONF"
     fi
 }
 
@@ -129,8 +135,8 @@ fi
 # Grab project files
 banner "Cloning Speaker-Select from GitHub..."
 cd /usr/local/bin
-if [[ -d /usr/local/bin/spkr-select-v3 ]]; then
-    log_note "Existing /usr/local/bin/spkr-select-v3 directory found."
+if [[ -d "$INSTALL_DIR" ]]; then
+    log_note "Existing ${INSTALL_DIR} directory found."
     log_note "Please remove or rename it before running this installer."
     exit 1
 fi
@@ -138,14 +144,49 @@ log_command $SUDO git clone https://github.com/nebhead/spkr-select-v3
 
 ### Setup Python VENV and Install Python dependencies
 banner "Setting up Python VENV and installing modules..."
-log_command $SUDO python3 -m venv --system-site-packages /usr/local/bin/spkr-select-v3/.venv
-log_command $SUDO /usr/local/bin/spkr-select-v3/.venv/bin/pip install --upgrade pip
-log_command $SUDO /usr/local/bin/spkr-select-v3/.venv/bin/pip install -r /usr/local/bin/spkr-select-v3/auto-install/requirements.txt
+log_command $SUDO python3 -m venv --system-site-packages ${INSTALL_DIR}/.venv
+log_command $SUDO ${INSTALL_DIR}/.venv/bin/pip install --upgrade pip
+log_command $SUDO ${INSTALL_DIR}/.venv/bin/pip install -r ${INSTALL_DIR}/auto-install/requirements.txt
+
+### Configure project ownership and permissions for supervisor-managed processes
+banner "Configuring Project Ownership and Permissions..."
+if getent group "$INSTALL_GROUP" >/dev/null 2>&1; then
+    log_note "Group ${INSTALL_GROUP} already exists."
+else
+    log_command $SUDO groupadd "$INSTALL_GROUP"
+fi
+log_command $SUDO usermod -a -G "$INSTALL_GROUP" "$INSTALL_USER"
+log_command $SUDO usermod -a -G "$INSTALL_GROUP" root
+log_command $SUDO mkdir -p "${INSTALL_DIR}/logs"
+log_command $SUDO chown -R "${INSTALL_USER}:${INSTALL_GROUP}" "$INSTALL_DIR"
+log_command $SUDO chmod -R g+rwX "$INSTALL_DIR"
+log_command $SUDO find "$INSTALL_DIR" -type d -exec chmod g+s {} +
+log_note "Applied group-based permissions to ${INSTALL_DIR} for user ${INSTALL_USER}."
+
+### Configure limited sudo permissions for power actions from web UI
+banner "Configuring Limited Sudo Permissions for Reboot/Shutdown..."
+REBOOT_BIN="$(command -v reboot || true)"
+SHUTDOWN_BIN="$(command -v shutdown || true)"
+
+if [[ -z "$REBOOT_BIN" || -z "$SHUTDOWN_BIN" ]]; then
+    log_note "ERROR: Could not locate reboot/shutdown binaries for sudoers configuration."
+    exit 1
+fi
+
+TMP_SUDOERS_CONF=$(mktemp)
+printf "%s ALL=(root) NOPASSWD: %s, %s\n" "$INSTALL_USER" "$REBOOT_BIN" "$SHUTDOWN_BIN" > "$TMP_SUDOERS_CONF"
+if ! log_command $SUDO visudo -cf "$TMP_SUDOERS_CONF"; then
+    log_note "ERROR: Generated sudoers file failed validation."
+    exit 1
+fi
+log_command $SUDO install -m 0440 "$TMP_SUDOERS_CONF" /etc/sudoers.d/spkr-select
+log_command $SUDO visudo -cf /etc/sudoers.d/spkr-select
+log_note "Installed sudoers drop-in for ${INSTALL_USER}: ${REBOOT_BIN}, ${SHUTDOWN_BIN}"
 
 ### Setup nginx to proxy to gunicorn
 banner "Configuring nginx..."
 # Move into install directory
-cd /usr/local/bin/spkr-select-v3/auto-install/nginx
+cd ${INSTALL_DIR}/auto-install/nginx
 
 # Delete default configuration
 if [[ -e /etc/nginx/sites-enabled/default ]]; then
@@ -180,7 +221,7 @@ banner "Configuring Supervisord..."
 
 # Copy configuration files (control.conf, webapp.conf) to supervisor config directory
 # NOTE: If you used a different directory for the installation then make sure you edit the *.conf files appropriately
-cd /usr/local/bin/spkr-select-v3/auto-install/supervisor
+cd ${INSTALL_DIR}/auto-install/supervisor
 TMP_CONTROL_CONF=$(mktemp)
 TMP_WEBAPP_CONF=$(mktemp)
 sed "s/__INSTALL_USER__/${INSTALL_USER}/g" control.conf > "$TMP_CONTROL_CONF"
