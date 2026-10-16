@@ -99,6 +99,17 @@ def DefaultSettings():
         'enabled' : True    # Enable local API support by default 
     }
 
+	settings['mqtt_config'] = {
+        'enabled' : False,
+        'host' : '',
+        'port' : 1883,
+        'username' : '',
+        'password' : '',
+        'base_topic' : 'spkr-select',
+        'discovery_prefix' : 'homeassistant',
+        'device_id' : ''  # Empty = use hostname
+    }
+
 	settings['options'] = {
         'ir_input' : False,
 		'triggerlevel' : 'high',  # Relays are active 'high' enable or active 'low' enable

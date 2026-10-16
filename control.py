@@ -16,6 +16,7 @@
 import time
 import redis
 from common import *
+from mqtt_client import MqttBridge
 
 def main():
 	"""
@@ -38,6 +39,7 @@ def main():
 		from platform_base import SpeakerPlatform
 
 	platform = SpeakerPlatform(settings)
+	mqtt_bridge = MqttBridge(settings)
 
 	"""
 	 *****************************************
@@ -55,10 +57,14 @@ def main():
 		# 3. Check if input from IR Remote Control and set outputs
 		platform.check_ir_input()
 
-		# 4. Check if change in settings needed 
-		if(status.get('update_settings') == 1):
+		# 4. Apply MQTT commands / publish state changes (non-blocking)
+		mqtt_bridge.process(platform)
+
+		# 5. Check if change in settings needed 
+		if(int(status.get('update_settings') or 0) == 1):
 			settings = ReadJSON('settings')
 			platform.update_settings(settings)
+			mqtt_bridge.configure(settings)
 			status.set('update_settings', 0)
 
 		time.sleep(0.01)

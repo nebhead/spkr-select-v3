@@ -45,3 +45,13 @@ switch speakers:
 ```
 
 Once configured, you can add these entities to your dashboard configuration.  It also means that you can use Google Assistant or Amazon Echo (if setup in HA) to control the state of these switches.  And that's something, right?  
+
+## MQTT Auto-Discovery (Recommended)
+
+Speaker Select can connect to your MQTT broker (for example Mosquitto) and be auto-discovered by Home Assistant.
+
+1. In Home Assistant, ensure the MQTT integration is set up with discovery enabled (the default).
+2. In the Speaker Select **Admin** page, open **MQTT / Home Assistant Settings**, enter your broker host, port and credentials, and enable it.
+3. Each enabled speaker group appears in Home Assistant as a switch named after its friendly name, plus a read-only *Speaker Protection* sensor. Renaming or disabling a speaker updates Home Assistant automatically.
+
+Topics (default base `spkr-select`): `spkr-select/<spkr_xx>/set` (`ON`/`OFF`), `spkr-select/<spkr_xx>/state`, and `spkr-select/status` (availability). Messages are retained and state is only published on change, so traffic is minimal. If the update notice says new packages are required, the updater installs `paho-mqtt` automatically.

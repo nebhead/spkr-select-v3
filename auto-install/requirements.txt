@@ -6,3 +6,4 @@ redis
 gpiozero
 evdev
 ratelimitingfilter
+paho-mqtt

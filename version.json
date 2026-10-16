@@ -1,12 +1,27 @@
 {
 	"name": "Speaker Select",
-	"version": "2026.10.1",
+	"version": "2026.10.3",
 	"released": "2026-10-16",
 	"upgrade_info": {
 		"2026.10.0": {
 			"pip_install": false,
 			"reboot": false,
 			"notes": "Testing the updater."
+		},
+		"2026.10.1": {
+			"pip_install": false,
+			"reboot": false,
+			"notes": "Minor fixes and improvements."
+		},
+		"2026.10.2": {
+			"pip_install": false,
+			"reboot": false,
+			"notes": "Further minor fixes and improvements."
+		},
+		"2026.10.3": {
+			"pip_install": true,
+			"reboot": false,
+			"notes": "Adds optional MQTT support with Home Assistant auto-discovery (installs paho-mqtt)."
 		}
 	}
 }

@@ -181,6 +181,27 @@ def admin(action=None):
 				notify['type'] = 'success'
 				notify['message'] = 'External API Key Updated.'
 
+	if (request.method == 'POST') and (action == 'mqtt_settings'):
+		response = request.form
+		mqtt_cfg = settings['mqtt_config']
+		mqtt_cfg['enabled'] = ('mqtt_enable' in response)
+		mqtt_cfg['host'] = response.get('mqtt_host', '').strip()
+		try:
+			mqtt_cfg['port'] = int(response.get('mqtt_port', 1883))
+		except ValueError:
+			mqtt_cfg['port'] = 1883
+		mqtt_cfg['username'] = response.get('mqtt_username', '').strip()
+		if response.get('mqtt_password', '') != '':  # Blank keeps the existing password
+			mqtt_cfg['password'] = response['mqtt_password']
+		if 'mqtt_clear_password' in response:
+			mqtt_cfg['password'] = ''
+		mqtt_cfg['base_topic'] = response.get('mqtt_base_topic', '').strip().strip('/') or 'spkr-select'
+		mqtt_cfg['discovery_prefix'] = response.get('mqtt_discovery_prefix', '').strip().strip('/') or 'homeassistant'
+		WriteJSON(settings, 'settings')
+		update_settings()
+		notify['type'] = 'success'
+		notify['message'] = 'MQTT Settings Updated Succesfully.'
+
 	if (request.method == 'POST') and (action == 'settings'):
 		response = request.form
 		#print(response)

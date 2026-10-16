@@ -306,6 +306,61 @@
 	<br>
 
 
+	<!-- MQTT Settings Card -->
+	<form name="input" action="/admin/mqtt_settings" method="POST">
+	<div class="card">
+		<div class="card-header">
+			MQTT / Home Assistant Settings
+			<span class="float-right">
+			<div class="custom-control custom-switch">
+				<input type="checkbox" class="custom-control-input" id="mqttenable" name="mqtt_enable" {% if settings['mqtt_config']['enabled'] %}checked{% endif %}>
+				<label class="custom-control-label" for="mqttenable">Enable</label>
+			</div>
+			</span>
+		</div>
+		<div class="card-body">
+			<i>Publishes each enabled speaker as a switch (using its name) and is auto-discovered by Home Assistant's MQTT integration.</i>
+			<br><br>
+			<div class="form-row">
+				<div class="form-group col-md-8">
+					<label for="mqtt_host">Broker Host</label>
+					<input type="text" class="form-control" id="mqtt_host" name="mqtt_host" value="{{ settings['mqtt_config']['host'] }}">
+				</div>
+				<div class="form-group col-md-4">
+					<label for="mqtt_port">Port</label>
+					<input type="number" class="form-control" id="mqtt_port" name="mqtt_port" min="1" max="65535" value="{{ settings['mqtt_config']['port'] }}">
+				</div>
+			</div>
+			<div class="form-row">
+				<div class="form-group col-md-6">
+					<label for="mqtt_username">Username</label>
+					<input type="text" class="form-control" id="mqtt_username" name="mqtt_username" value="{{ settings['mqtt_config']['username'] }}" autocomplete="off">
+				</div>
+				<div class="form-group col-md-6">
+					<label for="mqtt_password">Password</label>
+					<input type="password" class="form-control" id="mqtt_password" name="mqtt_password" placeholder="{% if settings['mqtt_config']['password'] %}(unchanged){% endif %}" autocomplete="new-password">
+				</div>
+			</div>
+			<div class="form-row">
+				<div class="form-group col-md-6">
+					<label for="mqtt_base_topic">Base Topic</label>
+					<input type="text" class="form-control" id="mqtt_base_topic" name="mqtt_base_topic" value="{{ settings['mqtt_config']['base_topic'] }}">
+				</div>
+				<div class="form-group col-md-6">
+					<label for="mqtt_discovery_prefix">Discovery Prefix</label>
+					<input type="text" class="form-control" id="mqtt_discovery_prefix" name="mqtt_discovery_prefix" value="{{ settings['mqtt_config']['discovery_prefix'] }}">
+				</div>
+			</div>
+			<div class="custom-control custom-checkbox mb-3">
+				<input type="checkbox" class="custom-control-input" id="mqtt_clear_password" name="mqtt_clear_password">
+				<label class="custom-control-label" for="mqtt_clear_password">Clear saved password</label>
+			</div>
+			<button class="btn btn-primary" type="submit">Save MQTT Settings</button>
+		</div>
+	</div>
+	</form>
+	<br>
+
       <!-- Admin Functions Card -->
 			<div class="card">
 				<div class="card-header">
