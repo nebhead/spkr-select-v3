@@ -75,15 +75,24 @@
 	}
 
 	function waitForRestart(reboot) {
-		$('#update_step').text(reboot ? 'Rebooting... this page will reload when the system is back.' : 'Restarting services... this page will reload shortly.');
-		var seenDown = false, tries = 0;
+		var remaining = reboot ? 60 : 25;
+		var label = reboot ? 'Rebooting system' : 'Restarting services';
 		var timer = setInterval(function() {
-			tries++;
-			$.ajax({url: '/update/status', timeout: 3000}).done(function(s) {
-				if (seenDown || (!reboot && tries > 6 && !s.running)) { clearInterval(timer); location.reload(); }
-			}).fail(function() { seenDown = true; });
-			if (tries > 180) { clearInterval(timer); }
-		}, 3000);
+			remaining--;
+			if (remaining > 0) {
+				$('#update_step').text(label + '... about ' + remaining + 's remaining.');
+				return;
+			}
+			clearInterval(timer);
+			$('#update_step').text(label + '... waiting for the server to respond.');
+			var retry = setInterval(function() {
+				$.ajax({url: '/update/status', timeout: 3000}).done(function() {
+					clearInterval(retry);
+					location.reload();
+				});
+			}, 3000);
+		}, 1000);
+		$('#update_step').text(label + '... about ' + remaining + 's remaining.');
 	}
 
 	function poll() {
