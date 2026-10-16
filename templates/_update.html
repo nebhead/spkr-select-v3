@@ -1,0 +1,133 @@
+<!-- Software Update Modal -->
+<div class="modal fade" id="updateModal" tabindex="-1" role="dialog" aria-labelledby="updateModalLabel" aria-hidden="true" data-backdrop="static">
+	<div class="modal-dialog modal-lg" role="document">
+		<div class="modal-content">
+			<div class="modal-header">
+				<h5 class="modal-title" id="updateModalLabel"><i class="fas fa-sync-alt"></i> Software Update</h5>
+				<button type="button" class="close" id="update_close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+			</div>
+			<div class="modal-body">
+				<div id="update_info">Checking for updates...</div>
+				<div id="update_commits" class="mt-3"></div>
+				<div id="update_progress_wrap" class="mt-3" style="display:none;">
+					<div id="update_step" class="mb-1"></div>
+					<div class="progress">
+						<div id="update_bar" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width:0%"></div>
+					</div>
+					<pre id="update_output" class="mt-3 p-2 bg-dark text-light" style="height:250px; overflow:auto; font-size:0.8rem;"></pre>
+				</div>
+			</div>
+			<div class="modal-footer">
+				<button type="button" class="btn btn-secondary" id="update_recheck"><i class="fas fa-sync-alt"></i> Check Again</button>
+				<button type="button" class="btn btn-success" id="update_apply" style="display:none;"><i class="fas fa-download"></i> Update Now</button>
+				<button type="button" class="btn btn-outline-secondary" id="update_dismiss" data-dismiss="modal">Close</button>
+			</div>
+		</div>
+	</div>
+</div>
+
+<script>
+(function() {
+	var updating = false;
+
+	function esc(t) { return $('<div>').text(t).html(); }
+
+	function runCheck(showModalState) {
+		$('#update_info').html('<div class="spinner-border spinner-border-sm" role="status"></div> Checking for updates...');
+		$('#update_commits').empty();
+		$('#update_apply').hide();
+		return $.getJSON('/update/check').done(function(d) {
+			if (!d.success) {
+				$('#update_info').html('<b class="text-danger"><i class="fas fa-exclamation-triangle"></i> Update check failed:</b> ' + esc(d.error));
+				return;
+			}
+			if (!d.update_available) {
+				$('#update_info').html('<b class="text-success"><i class="fas fa-check"></i> You are up to date</b> (version ' + esc(d.current) + ').');
+				return;
+			}
+			$('#update_banner_text').text('version ' + d.latest + ' is available (installed: ' + d.current + ').');
+			$('#update_banner').show();
+			var info = 'Version <b>' + esc(d.latest) + '</b> is available (installed: ' + esc(d.current) + ').';
+			if (d.reboot) { info += '<br><span class="text-warning"><i class="fas fa-power-off"></i> This update requires a <b>full system reboot</b>.</span>'; }
+			else { info += '<br>Services will be restarted after the update.'; }
+			if (d.pip_install) { info += '<br>New Python dependencies will be installed.'; }
+			$.each(d.notes, function(i, n) { info += '<br><small>' + esc(n) + '</small>'; });
+			$('#update_info').html(info);
+			if (d.commits.length) {
+				var h = '<b>Latest changes:</b><ul class="list-unstyled small mb-0">';
+				$.each(d.commits, function(i, c) {
+					h += '<li><code>' + esc(c.hash) + '</code> ' + esc(c.date) + ' - ' + esc(c.subject) + ' <i>(' + esc(c.author) + ')</i></li>';
+				});
+				$('#update_commits').html(h + '</ul>');
+			}
+			$('#update_apply').show();
+		}).fail(function() {
+			$('#update_info').html('<b class="text-danger">Update check failed.</b>');
+		});
+	}
+
+	function render(s) {
+		$('#update_bar').css('width', s.progress + '%');
+		$('#update_step').text(s.step);
+		var out = $('#update_output');
+		out.text(s.output.join('\n'));
+		out.scrollTop(out[0].scrollHeight);
+	}
+
+	function waitForRestart(reboot) {
+		$('#update_step').text(reboot ? 'Rebooting... this page will reload when the system is back.' : 'Restarting services... this page will reload shortly.');
+		var seenDown = false, tries = 0;
+		var timer = setInterval(function() {
+			tries++;
+			$.ajax({url: '/update/status', timeout: 3000}).done(function(s) {
+				if (seenDown || (!reboot && tries > 6 && !s.running)) { clearInterval(timer); location.reload(); }
+			}).fail(function() { seenDown = true; });
+			if (tries > 180) { clearInterval(timer); }
+		}, 3000);
+	}
+
+	function poll() {
+		$.getJSON('/update/status').done(function(s) {
+			render(s);
+			if (!s.done) { setTimeout(poll, 1000); return; }
+			$('#update_bar').removeClass('progress-bar-animated');
+			if (s.success) {
+				$('#update_bar').addClass('bg-success');
+				waitForRestart(s.action === 'reboot');
+			} else {
+				$('#update_bar').addClass('bg-danger');
+				$('#update_step').html('<b class="text-danger">Update failed.</b>');
+				finish();
+			}
+		}).fail(function() { setTimeout(poll, 2000); });
+	}
+
+	function finish() {
+		updating = false;
+		$('#update_close, #update_dismiss, #update_recheck').prop('disabled', false);
+	}
+
+	$('#update_apply').click(function() {
+		updating = true;
+		$('#update_close, #update_dismiss, #update_recheck').prop('disabled', true);
+		$(this).hide();
+		$('#update_progress_wrap').show();
+		$('#update_bar').removeClass('bg-success bg-danger').addClass('progress-bar-animated').css('width', '0%');
+		$.post('/update/start').done(function(r) {
+			if (!r.started) { $('#update_step').text('An update is already running.'); }
+			poll();
+		}).fail(function() { $('#update_step').text('Failed to start update.'); finish(); });
+	});
+
+	$('#update_recheck').click(function() { runCheck(); });
+	$('#updateModal').on('show.bs.modal', function() { if (!updating) { runCheck(); } });
+
+	// Passive check on page load to show the notification banner
+	$.getJSON('/update/check').done(function(d) {
+		if (d.success && d.update_available) {
+			$('#update_banner_text').text('version ' + d.latest + ' is available (installed: ' + d.current + ').');
+			$('#update_banner').show();
+		}
+	});
+})();
+</script>

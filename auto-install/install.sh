@@ -167,14 +167,15 @@ log_note "Applied group-based permissions to ${INSTALL_DIR} for user ${INSTALL_U
 banner "Configuring Limited Sudo Permissions for Reboot/Shutdown..."
 REBOOT_BIN="$(command -v reboot || true)"
 SHUTDOWN_BIN="$(command -v shutdown || true)"
+SUPERVISORCTL_BIN="$(command -v supervisorctl || true)"
 
-if [[ -z "$REBOOT_BIN" || -z "$SHUTDOWN_BIN" ]]; then
-    log_note "ERROR: Could not locate reboot/shutdown binaries for sudoers configuration."
+if [[ -z "$REBOOT_BIN" || -z "$SHUTDOWN_BIN" || -z "$SUPERVISORCTL_BIN" ]]; then
+    log_note "ERROR: Could not locate reboot/shutdown/supervisorctl binaries for sudoers configuration."
     exit 1
 fi
 
 TMP_SUDOERS_CONF=$(mktemp)
-printf "%s ALL=(root) NOPASSWD: %s, %s\n" "$INSTALL_USER" "$REBOOT_BIN" "$SHUTDOWN_BIN" > "$TMP_SUDOERS_CONF"
+printf "%s ALL=(root) NOPASSWD: %s, %s, %s restart control webapp\n" "$INSTALL_USER" "$REBOOT_BIN" "$SHUTDOWN_BIN" "$SUPERVISORCTL_BIN" > "$TMP_SUDOERS_CONF"
 if ! log_command $SUDO visudo -cf "$TMP_SUDOERS_CONF"; then
     log_note "ERROR: Generated sudoers file failed validation."
     exit 1

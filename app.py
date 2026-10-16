@@ -18,6 +18,7 @@ import secrets
 from common import *  # Common Library for WebUI and Control Program
 import redis # pip3 install redis
 from geocheck import *  # Library for checking location / sunrise / sunset
+import updater  # Version handling and update logic
 
 settings = ReadJSON('settings')
 
@@ -298,6 +299,23 @@ def admin(action=None):
 		temp = 'NA'
 
 	return render_template('admin.html', settings=settings, notify=notify, uptime=uptime, cpuinfo=cpuinfo, temp=temp, ifconfig=ifconfig, pagetheme=get_theme())
+
+@app.context_processor
+def inject_version():
+	return {'app_version': updater.get_version()}
+
+@app.route('/update/check')
+def update_check():
+	return jsonify(updater.check_for_update())
+
+@app.route('/update/start', methods=['POST'])
+def update_start():
+	WriteLog('Admin: Update started', logger_name='webapp')
+	return jsonify({'started': updater.start_update()})
+
+@app.route('/update/status')
+def update_status():
+	return jsonify(updater.get_status())
 
 @app.route('/manifest')
 def manifest():

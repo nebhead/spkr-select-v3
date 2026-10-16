@@ -2,6 +2,8 @@
 
 {% block title %} Admin & Settings {% endblock %}
 
+{% block versionmark %}{% endblock %}
+
 {% block notify %}
 	<div class="container">
 	<!-- Settings Success -->
@@ -14,12 +16,20 @@
 			<i class="fas fa-info-circle"></i><b> {{ notify['message'] }}</b>
 		</div>
 	  {% endif %}
+		<div id="update_banner" class="alert alert-info" style="display:none;">
+			<i class="fas fa-arrow-circle-up"></i> <b>Update available:</b>
+			<span id="update_banner_text"></span>
+			<a href="#" class="alert-link float-right" data-toggle="modal" data-target="#updateModal">View &amp; Update</a>
+		</div>
     </div>  
 {% endblock %}
 
 {% block content %}
 
 <div class="container">
+	<div class="text-center mb-3">
+		<span class="badge badge-secondary" style="font-size:1rem;"><i class="fas fa-tag"></i> Version {{ app_version }}</span>
+	</div>
 
 	<!-- Speaker Config Card -->
 	<form name="input" action="/admin/settings" method="POST">
@@ -368,6 +378,20 @@
 				</div>
 			<br>
 
+			<!-- Software Update Card -->
+			<div class="card">
+				<div class="card-header">
+							Software Update
+				</div>
+				<div class="card-body">
+					<p>Installed version: <b>{{ app_version }}</b></p>
+					<button type="button" class="btn btn-primary btn-block" data-toggle="modal" data-target="#updateModal">
+						<i class="fas fa-sync-alt"></i> Check for Updates
+					</button>
+				</div>
+			</div>
+			<br>
+
 			<div class="card">
 				<div class="card-header">
 							System Info
@@ -432,6 +456,7 @@
 {% endblock %}
 
 {% block scripts %} 
+{% include '_update.html' %}
 <script>
 	document.getElementById('check_location').addEventListener('click', function() {
 		

@@ -54,6 +54,9 @@
         </nav><br>
         {% block notify %} {% endblock %}<br>
         {% block content %} {% endblock %}<br>
+        {% block versionmark %}
+        <div class="text-center text-muted mb-2"><small style="opacity:0.5;">v{{ app_version }}</small></div>
+        {% endblock %}
         <!-- jQuery and Bootstrap Bundle (includes Popper) -->
         <script src="{{ url_for('static', filename='js/jquery-3.5.1.min.js') }}"></script>
         <script src="{{ url_for('static', filename='js/bootstrap.bundle.js') }}"></script>

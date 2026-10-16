@@ -1,0 +1,12 @@
+{
+	"name": "Speaker Select",
+	"version": "2026.10.0",
+	"released": "2026-10-16",
+	"upgrade_info": {
+		"2026.10.0": {
+			"pip_install": false,
+			"reboot": false,
+			"notes": "First versioned release. Adds the in-app updater."
+		}
+	}
+}
